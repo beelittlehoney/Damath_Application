@@ -2,12 +2,15 @@
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="16dp">
+    android:padding="16dp"
+    android:background="@drawable/background_img">
 
     <TextView
         android:id="@+id/howToPlayText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Damath is a Filipino educational board game that combines the board game 'Dama' (Filipino checkers) with mathematical operations. Each piece has a numerical value and an associated operation. Players capture opponent pieces and perform the operation to accumulate points. The player with the highest score at the end wins."
+        android:textColor="@color/white"
+        android:fontFamily="@font/alfa_slab_one"
         android:textSize="16sp" />
 </ScrollView>

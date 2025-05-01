@@ -18,12 +18,13 @@
             android:id="@+id/player1Score"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Player 1: 0"
-            android:textSize="18sp"
-            android:textStyle="bold"
-            android:textAlignment="textStart"
             android:layout_gravity="start"
-            android:layout_weight="1" />
+            android:layout_weight="1"
+            android:fontFamily="@font/alfa_slab_one"
+            android:text="Player 1: 0"
+            android:textAlignment="textStart"
+            android:textSize="18sp"
+            android:textStyle="bold" />
 
         <TextView
             android:id="@+id/player2Score"
