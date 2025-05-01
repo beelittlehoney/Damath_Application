@@ -1,73 +1,68 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:orientation="vertical"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="16dp"
-    android:background="@drawable/background_img">
+    android:background="@drawable/background_img"
+    android:padding="16dp">
 
-    <!-- Score Display -->
     <LinearLayout
-        android:orientation="horizontal"
+        android:orientation="vertical"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center">
+        android:layout_height="wrap_content">
 
+        <!-- Score Display -->
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center">
+
+            <TextView
+                android:id="@+id/player1Score"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:fontFamily="@font/alfa_slab_one"
+                android:text="Player 1: 0"
+                android:textAlignment="textStart"
+                android:textColor="@color/white"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/player2Score"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:fontFamily="@font/alfa_slab_one"
+                android:text="Player 2: 0"
+                android:textAlignment="textEnd"
+                android:textColor="@color/white"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Turn Indicator -->
         <TextView
-            android:id="@+id/player1Score"
+            android:id="@+id/turnIndicator"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="start"
-            android:layout_weight="1"
-            android:fontFamily="@font/alfa_slab_one"
-            android:text="Player 1: 0"
-            android:textAlignment="textStart"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="8dp"
+            android:textSize="16sp"
             android:textColor="@color/white"
-            android:textSize="18sp"
-            android:textStyle="bold" />
+            android:text="Player 1's Turn" />
 
-        <TextView
-            android:id="@+id/player2Score"
+        <!-- Game Board -->
+        <GridLayout
+            android:id="@+id/gridBoard"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:fontFamily="@font/alfa_slab_one"
-            android:text="Player 2: 0"
-            android:textSize="18sp"
-            android:textStyle="bold"
-            android:textAlignment="textEnd"
-            android:textColor="@color/white"
-            android:layout_gravity="end"
-            android:layout_weight="1" />
+            android:layout_gravity="center"
+            android:layout_marginTop="16dp"
+            android:columnCount="10"
+            android:rowCount="10"
+            android:orientation="horizontal" />
+
     </LinearLayout>
-
-    <!-- Turn Indicator -->
-    <TextView
-        android:id="@+id/turnIndicator"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center_horizontal"
-        android:layout_marginTop="8dp"
-        android:textSize="16sp" />
-
-    <!-- Game Board -->
-    <GridLayout
-        android:id="@+id/gameBoard"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:columnCount="8"
-        android:rowCount="8"
-        android:layout_marginTop="16dp" >
-
-        <ImageView
-            android:id="@+id/imageView"
-            android:layout_width="wrap_content"
-            android:layout_height="514dp"
-            android:layout_row="0"
-            android:layout_column="0"
-            app:srcCompat="@drawable/damath_board" />
-    </GridLayout>
-
-    <!-- How to Play Button -->
-</LinearLayout>
+</ScrollView>
