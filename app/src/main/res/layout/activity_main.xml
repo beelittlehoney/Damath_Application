@@ -23,6 +23,7 @@
             android:fontFamily="@font/alfa_slab_one"
             android:text="Player 1: 0"
             android:textAlignment="textStart"
+            android:textColor="@color/white"
             android:textSize="18sp"
             android:textStyle="bold" />
 
@@ -30,10 +31,12 @@
             android:id="@+id/player2Score"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:fontFamily="@font/alfa_slab_one"
             android:text="Player 2: 0"
             android:textSize="18sp"
             android:textStyle="bold"
             android:textAlignment="textEnd"
+            android:textColor="@color/white"
             android:layout_gravity="end"
             android:layout_weight="1" />
     </LinearLayout>

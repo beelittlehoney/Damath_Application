@@ -1,18 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- App Name -->
-    <string name="app_name">Damath Application</string>
-
-    <!-- Username Entry Screen -->
-    <string name="enter_usernames">Enter Player Usernames</string>
-    <string name="player1_username">Player 1 Username</string>
-    <string name="player2_username">Player 2 Username</string>
-    <string name="start_game">Start Game</string>
-    <string name="please_enter_usernames">Please enter usernames for both players.</string>
 
     <!-- Main Game Screen -->
     <string name="turn_indicator">Turn: %1$s</string>
     <string name="score_display">%1$s: %2$d</string>
     <string name="how_to_play">How to Play</string>
     <string name="how_to_play_description">Damath is a Filipino educational board game that combines the board game \'Dama\' (Filipino checkers) with mathematical operations. Each piece has a numerical value and an associated operation. Players capture opponent pieces and perform the operation to accumulate points. The player with the highest score at the end wins.</string>
+    <string name="enter_player1_name">Enter Player 1 Name</string>
+    <string name="enter_player2_name">Enter Player 2 Name</string>
 </resources>
