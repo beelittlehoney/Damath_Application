@@ -9,7 +9,7 @@
         android:id="@+id/howToPlayText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Damath is a Filipino educational board game that combines the board game 'Dama' (Filipino checkers) with mathematical operations. Each piece has a numerical value and an associated operation. Players capture opponent pieces and perform the operation to accumulate points. The player with the highest score at the end wins."
+        android:text="@string/how_to_play_description"
         android:textColor="@color/white"
         android:fontFamily="@font/alfa_slab_one"
         android:textSize="16sp" />
