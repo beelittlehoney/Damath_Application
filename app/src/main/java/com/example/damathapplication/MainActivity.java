@@ -58,19 +58,14 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void setupGameBoard() {
-        // Calculate tile size based on screen width
         DisplayMetrics displayMetrics = getResources().getDisplayMetrics();
         int screenWidth = displayMetrics.widthPixels;
         int totalMarginPx = (int) TypedValue.applyDimension(
-                TypedValue.COMPLEX_UNIT_DIP, 32, displayMetrics); // 16dp start + 16dp end
+                TypedValue.COMPLEX_UNIT_DIP, 32, displayMetrics);
         int tileSizePx = (screenWidth - totalMarginPx) / 10;
 
-        // Clear any existing views in the grid
         gridBoard.removeAllViews();
-
-        // Initialize random generator for operator tiles
         Random random = new Random();
-        int[][] operatorIndices = new int[8][8]; // To store operator indices for adjacency check
 
         for (int row = 0; row < 10; row++) {
             for (int col = 0; col < 10; col++) {
@@ -81,37 +76,27 @@ public class MainActivity extends AppCompatActivity {
                 tile.setLayoutParams(params);
                 tile.setScaleType(ImageView.ScaleType.FIT_CENTER);
 
-                if ((row == 0 && col == 0) || (row == 0 && col == 9) ||
-                        (row == 9 && col == 0) || (row == 9 && col == 9)) {
-                    // Four corners
+                if ((row == 0 || row == 9) && (col == 0 || col == 9)) {
+                    // Corners
                     tile.setImageResource(R.drawable.tile_white);
-                } else if (row == 0 && col > 0 && col < 9) {
-                    // Top number labels
+                } else if (row == 0 || row == 9) {
+                    // Top and bottom number labels
                     tile.setImageResource(numberTiles[col - 1]);
-                } else if (col == 0 && row > 0 && row < 9) {
-                    // Left number labels
+                } else if (col == 0 || col == 9) {
+                    // Left and right number labels
                     tile.setImageResource(numberTiles[row - 1]);
-                } else if (row >= 1 && row <= 8 && col >= 1 && col <= 8) {
-                    // Game area
-                    int gameRow = row - 1;
-                    int gameCol = col - 1;
-                    if (gameRow % 2 == 0 && gameCol % 2 == 0) {
-                        // Even row and column: black tile
+                } else {
+                    // 8x8 game board
+                    int innerRow = row - 1;
+                    int innerCol = col - 1;
+                    if ((innerRow + innerCol) % 2 == 0) {
+                        // Black tile
                         tile.setImageResource(R.drawable.tile_black);
                     } else {
-                        // Operator tile with no adjacent duplicates
-                        int operatorIndex;
-                        int attempts = 0;
-                        do {
-                            operatorIndex = random.nextInt(operatorTiles.length);
-                            attempts++;
-                        } while (hasAdjacentSameOperator(operatorIndices, gameRow, gameCol, operatorIndex) && attempts < 10);
-                        operatorIndices[gameRow][gameCol] = operatorIndex;
+                        // White tile with random operator
+                        int operatorIndex = random.nextInt(operatorTiles.length);
                         tile.setImageResource(operatorTiles[operatorIndex]);
                     }
-                } else {
-                    // Remaining positions (if any)
-                    tile.setImageResource(R.drawable.tile_black);
                 }
 
                 gridBoard.addView(tile);
@@ -125,9 +110,6 @@ public class MainActivity extends AppCompatActivity {
             return true;
         }
         // Check up
-        if (row > 0 && operatorIndices[row - 1][col] == operatorIndex) {
-            return true;
-        }
-        return false;
+        return row > 0 && operatorIndices[row - 1][col] == operatorIndex;
     }
 }
