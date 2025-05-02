@@ -5,7 +5,27 @@
     <string name="turn_indicator">Turn: %1$s</string>
     <string name="score_display">%1$s: %2$d</string>
     <string name="how_to_play">How to Play</string>
-    <string name="how_to_play_description">Damath is a Filipino educational board game that combines the board game \'Dama\' (Filipino checkers) with mathematical operations. Each piece has a numerical value and an associated operation. Players capture opponent pieces and perform the operation to accumulate points. The player with the highest score at the end wins.</string>
+    <string name="how_to_play_description">
+    GAME INSTRUCTIONS:\n\n
+    1. Setup:\n
+    • Two players: Player 1 and Player 2.\n
+    • Each game piece is labeled with a numerical value.\n
+    • The board resembles a checkers board, but each square contains a randomly assigned math operator: + (addition), − (subtraction), × (multiplication), or ÷ (division).\n\n
+    2. How to Play:\n
+    • Players move diagonally, just like in traditional checkers.\n
+    • When a player jumps over an opponent’s piece to capture it,\n
+      they must solve a math operation.\n\n
+    3. Scoring:\n
+    • The operation is based on:\n
+      ‒ The number on your piece (attacker),\n
+      ‒ The operator on the square where the capture occurs, and\n
+      ‒ The number on the opponent’s piece (defender).\n
+    • Example: If your piece is 5, the opponent’s piece is 3, and the square has ×, then:\n
+      5 × 3 = 15 → you earn 15 points.\n\n
+    4. Winning the Game:\n
+    • The game continues until all possible captures are made or no more moves are available.\n
+    • The player with the highest total score at the end wins the game.
+</string>
     <string name="enter_player1_name">Enter Player 1 Name</string>
     <string name="enter_player2_name">Enter Player 2 Name</string>
 </resources>

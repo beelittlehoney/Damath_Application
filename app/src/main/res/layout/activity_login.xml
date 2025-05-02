@@ -9,17 +9,17 @@
     tools:context=".Login">
 
     <ImageButton
-        android:id="@+id/startGameButton"
+        android:id="@+id/backButton_login"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:background="@drawable/fill_image_button"
+        android:background="@drawable/circular_button"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.496"
+        app:layout_constraintHorizontal_bias="0.046"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/player2Name"
-        app:layout_constraintVertical_bias="0.285"
-        app:srcCompat="@drawable/start_game_button" />
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.023"
+        app:srcCompat="@drawable/back_button" />
 
     <EditText
         android:id="@+id/player1Name"
@@ -51,4 +51,17 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/player1Name"
         app:layout_constraintVertical_bias="0.04" />
+
+    <ImageButton
+        android:id="@+id/startGameButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@drawable/fill_image_button"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.496"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/player2Name"
+        app:layout_constraintVertical_bias="0.285"
+        app:srcCompat="@drawable/start_game_button" />
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -19,7 +19,7 @@ public class HomePageActivity extends AppCompatActivity {
         howToPlayButton = findViewById(R.id.howToPlayButton);
 
         playButton.setOnClickListener(v -> {
-            Intent intent = new Intent(HomePageActivity.this, MainActivity.class);
+            Intent intent = new Intent(HomePageActivity.this, Login.class);
             startActivity(intent);
             finish();
         });

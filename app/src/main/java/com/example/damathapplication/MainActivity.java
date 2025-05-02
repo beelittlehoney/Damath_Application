@@ -1,11 +1,13 @@
 package com.example.damathapplication;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
 import android.util.TypedValue;
 import android.widget.GridLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.ImageButton;
 import androidx.appcompat.app.AppCompatActivity;
 import java.util.Random;
 
@@ -13,6 +15,7 @@ public class MainActivity extends AppCompatActivity {
     private TextView player1ScoreTextView;
     private TextView player2ScoreTextView;
     private TextView turnIndicatorTextView;
+    private ImageButton homeButton;
     private GridLayout gridBoard;
 
     // Array of number tile resource IDs (tile_number_1 to tile_number_8)
@@ -41,7 +44,18 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         initializeViews();
         setupPlayerInfo();
+        Intent intent = getIntent();
+        String player1Name = intent.getStringExtra("player1Name");
+        String player2Name = intent.getStringExtra("player2Name");
+        setPlayerNames(player1Name,player2Name);
         setupGameBoard();
+
+        homeButton = findViewById(R.id.homeButton);
+        homeButton.setOnClickListener(view -> {
+            Intent homeIntent = new Intent(MainActivity.this, HomePageActivity.class);
+            startActivity(homeIntent);
+            finish(); // Close the current activity
+        });
     }
 
     private void initializeViews() {
@@ -49,12 +63,17 @@ public class MainActivity extends AppCompatActivity {
         player2ScoreTextView = findViewById(R.id.player2Score);
         turnIndicatorTextView = findViewById(R.id.turnIndicator);
         gridBoard = findViewById(R.id.gridBoard);
+        homeButton = findViewById(R.id.homeButton);
     }
 
     private void setupPlayerInfo() {
-        player1ScoreTextView.setText("Player 1: 0");
-        player2ScoreTextView.setText("Player 2: 0");
+        player1ScoreTextView.setText("0");
+        player2ScoreTextView.setText("0");
         turnIndicatorTextView.setText("Player 1's Turn");
+    }
+    private void setPlayerNames(String player1Name, String player2Name){
+        player1ScoreTextView.setText(player1Name + ": " + player1ScoreTextView.getText().toString());
+        player2ScoreTextView.setText(player2Name + ": " + player2ScoreTextView.getText().toString());
     }
 
     private void setupGameBoard() {
