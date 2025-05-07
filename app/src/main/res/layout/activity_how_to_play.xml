@@ -39,7 +39,7 @@
             android:layout_marginStart="20dp"
             android:layout_marginTop="20dp"
             android:gravity="center"
-            android:layout_width="341dp"
+            android:layout_width="340dp"
             android:layout_height="450dp"
             android:orientation="vertical">
 
@@ -47,6 +47,7 @@
                 android:id="@+id/howToPlayText"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginBottom="60dp"
                 android:fontFamily="@font/alfa_slab_one"
                 android:text="@string/how_to_play_description"
                 android:textColor="@color/white"

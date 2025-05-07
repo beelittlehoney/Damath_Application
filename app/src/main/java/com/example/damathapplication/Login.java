@@ -9,8 +9,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 public class Login extends AppCompatActivity {
 
-    ImageButton startGameButton;
-    ImageButton backButton_login;
+    ImageButton startGameButton, backButton_login;
     EditText player1Name, player2Name;
 
 
@@ -29,9 +28,9 @@ public class Login extends AppCompatActivity {
             startGameButton.setOnClickListener(v -> {
                 // Create an Intent to start the MainActivity
                 Intent intent = new Intent(Login.this, MainActivity.class);
-                startActivity(intent);
                 intent.putExtra("player1Name", player1Name.getText().toString());
                 intent.putExtra("player2Name", player2Name.getText().toString());
+                startActivity(intent);
             });
         } else {
             Toast.makeText(this, "Oops! No definitive class to find", Toast.LENGTH_SHORT).show();
