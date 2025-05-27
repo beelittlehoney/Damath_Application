@@ -331,25 +331,26 @@ public class MainActivity extends AppCompatActivity {
         clearHighlights();
 
         String color = (String) selectedPiece.getTag(R.id.piece_color_tag);
-        int direction = color.equals("red") ? 1 : -1;
+        int[][] directions = {{1, 1}, {1, -1}, {-1, 1}, {-1, -1}}; // all diagonals
 
-        for (int dc = -1; dc <= 1; dc += 2) {
-            int moveRow = row + direction;
-            int moveCol = col + dc;
+        for (int[] dir : directions) {
+            int dRow = dir[0], dCol = dir[1];
+            int moveRow = row + dRow;
+            int moveCol = col + dCol;
 
-            // Regular forward diagonal move
+            // Regular diagonal move
             if (isInBounds(moveRow, moveCol)) {
                 FrameLayout target = tileContainers[moveRow][moveCol];
                 if (target.getChildCount() <= 2) {
-                    highlightTile(target);
+                    highlightTile(target, false);
                 }
             }
 
-            // Capture move (jump over opponent)
-            int midRow = row + direction;
-            int midCol = col + dc;
-            int jumpRow = row + 2 * direction;
-            int jumpCol = col + 2 * dc;
+            // Capture move
+            int midRow = row + dRow;
+            int midCol = col + dCol;
+            int jumpRow = row + 2 * dRow;
+            int jumpCol = col + 2 * dCol;
 
             if (isInBounds(midRow, midCol) && isInBounds(jumpRow, jumpCol)) {
                 FrameLayout midCell = tileContainers[midRow][midCol];
@@ -368,7 +369,36 @@ public class MainActivity extends AppCompatActivity {
                 boolean jumpEmpty = jumpCell.getChildCount() <= 2;
 
                 if (isOpponent && jumpEmpty) {
-                    highlightTile(jumpCell);
+                    highlightTile(jumpCell, true); // red for landing
+                    highlightTile(midCell, true);  // red for capture piece
+
+                    // Display operator image above the captured piece
+                    ImageView midTileImage = (ImageView) midCell.getChildAt(0);
+                    int operatorResId = (Integer) midTileImage.getTag(R.id.tile_type_id);
+
+                    // Map tile operator to exponent-style icon
+                    int operatorIcon = -1;
+                    if (operatorResId == R.drawable.tile_add) operatorIcon = R.drawable.operator_add;
+                    else if (operatorResId == R.drawable.tile_minus) operatorIcon = R.drawable.operator_minus;
+                    else if (operatorResId == R.drawable.tile_multiply) operatorIcon = R.drawable.operator_multiply;
+                    else if (operatorResId == R.drawable.tile_divide) operatorIcon = R.drawable.operator_divide;
+
+                    if (operatorIcon != -1) {
+                        ImageView operatorView = new ImageView(this);
+                        operatorView.setImageResource(operatorIcon);
+
+                        // Position it like an exponent
+                        FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
+                            FrameLayout.LayoutParams.WRAP_CONTENT,
+                            FrameLayout.LayoutParams.WRAP_CONTENT
+                        );
+                        params.topMargin = 10;  // adjust to fit
+                        params.leftMargin = 50; // adjust as needed
+                        operatorView.setLayoutParams(params);
+                        operatorView.setTag("temp_operator");
+
+                        midCell.addView(operatorView);
+                    }
                 }
             }
         }
@@ -377,12 +407,21 @@ public class MainActivity extends AppCompatActivity {
     private void clearHighlights() {
         for (int r = 0; r < 8; r++) {
             for (int c = 0; c < 8; c++) {
-                if (tileContainers[r][c] != null) {
-                    for (int i = 0; i < tileContainers[r][c].getChildCount(); i++) {
-                        View child = tileContainers[r][c].getChildAt(i);
-                        if ("highlight".equals(child.getTag())) {
+                FrameLayout cell = tileContainers[r][c];
+                if (cell != null) {
+                    for (int i = 0; i < cell.getChildCount(); i++) {
+                        View child = cell.getChildAt(i);
+                        Object tag = child.getTag();
+
+                        // Clear highlight overlay
+                        if ("highlight".equals(tag)) {
                             child.setBackgroundResource(0);
-                            break;
+                        }
+
+                        // Remove temporary operator icons
+                        if ("temp_operator".equals(tag)) {
+                            cell.removeView(child);
+                            i--; // Adjust index after removal
                         }
                     }
                 }
@@ -408,11 +447,11 @@ public class MainActivity extends AppCompatActivity {
         return row >= 0 && row < 8 && col >= 0 && col < 8;
     }
 
-    private void highlightTile(FrameLayout tile) {
+    private void highlightTile(FrameLayout tile, boolean isCapture) {
         for (int i = 0; i < tile.getChildCount(); i++) {
             View child = tile.getChildAt(i);
             if ("highlight".equals(child.getTag())) {
-                child.setBackgroundResource(R.drawable.tile_highlight);
+                child.setBackgroundResource(isCapture ? R.drawable.tile_highlight_green : R.drawable.tile_highlight_yellow);
                 break;
             }
         }
