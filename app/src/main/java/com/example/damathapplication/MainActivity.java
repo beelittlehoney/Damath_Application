@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
 import android.util.TypedValue;
+import android.view.View;
 import android.widget.FrameLayout;
 import android.widget.GridLayout;
 import android.widget.ImageButton;
@@ -19,6 +20,7 @@ import java.util.Random;
 
 public class MainActivity extends AppCompatActivity {
     private TextView player1ScoreTextView, player2ScoreTextView, turnIndicatorTextView;
+    private FrameLayout[][] tileContainers = new FrameLayout[8][8];
     private String currentTurn = "red"; // red starts first
     private String player1Name = "Player 1";
     private String player2Name = "Player 2";
@@ -115,6 +117,15 @@ public class MainActivity extends AppCompatActivity {
                 tile.setLayoutParams(new FrameLayout.LayoutParams(
                     FrameLayout.LayoutParams.MATCH_PARENT,
                     FrameLayout.LayoutParams.MATCH_PARENT));
+                View highlightOverlay = new View(this);
+                highlightOverlay.setLayoutParams(new FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    FrameLayout.LayoutParams.MATCH_PARENT));
+                highlightOverlay.setBackgroundResource(0); // initially invisible
+                highlightOverlay.setTag("highlight");
+
+                tileContainer.addView(highlightOverlay);
+
                 tile.setScaleType(ImageView.ScaleType.FIT_CENTER);
 
                 if ((row == 0 || row == 9) && (col == 0 || col == 9)) {
@@ -138,16 +149,29 @@ public class MainActivity extends AppCompatActivity {
                 }
 
                 tileContainer.setOnClickListener(v -> {
-                    if (selectedPiece != null && tile.getDrawable() != null &&
-                            isWhiteTile(tile)) {
+                    if (selectedPiece != null) {
+                        FrameLayout targetCell = (FrameLayout) v;
+
+                        ImageView tileImage = null;
+                        for (int i = 0; i < targetCell.getChildCount(); i++) {
+                            View child = targetCell.getChildAt(i);
+                            if (child instanceof ImageView) {
+                                tileImage = (ImageView) child;
+                                break;
+                            }
+                        }
+
+                        if (tileImage == null || !isWhiteTile(tileImage)) return;
 
                         int targetIndex = gridBoard.indexOfChild(v);
                         int targetRow = targetIndex / 10 - 1;
                         int targetCol = targetIndex % 10 - 1;
 
+                        if (targetCell.getChildCount() > 2) return;
+
                         if (isValidDiagonalMove(selectedRow, selectedCol, targetRow, targetCol)) {
                             selectedPieceParent.removeView(selectedPiece);
-                            ((FrameLayout) v).addView(selectedPiece);
+                            targetCell.addView(selectedPiece);
 
                             selectedPiece.setTag(R.id.piece_row_tag, targetRow);
                             selectedPiece.setTag(R.id.piece_col_tag, targetCol);
@@ -156,7 +180,8 @@ public class MainActivity extends AppCompatActivity {
                             selectedPiece = null;
                             selectedPieceParent = null;
 
-                            // Switch turn
+                            clearHighlights();
+
                             currentTurn = currentTurn.equals("red") ? "blue" : "red";
                             turnIndicatorTextView.setText(
                                     (currentTurn.equals("red") ? player1Name : player2Name) + "'s turn");
@@ -168,6 +193,10 @@ public class MainActivity extends AppCompatActivity {
                 tileContainer.addView(tile, 0); // Add at index 0 (bottom)
 
                 gridBoard.addView(tileContainer);
+
+                if (row > 0 && row < 9 && col > 0 && col < 9) {
+                    tileContainers[row - 1][col - 1] = tileContainer;
+                }
             }
         }
 
@@ -236,16 +265,20 @@ public class MainActivity extends AppCompatActivity {
 
         piece.setOnClickListener(v -> {
             String pieceColor = (String) piece.getTag(R.id.piece_color_tag);
-            if (!pieceColor.equals(currentTurn)) return; // Only allow turn owner's piece
+            if (!pieceColor.equals(currentTurn)) return;
 
             if (selectedPiece != null) {
                 selectedPiece.setAlpha(1.0f);
+                clearHighlights();
             }
+
             selectedPiece = piece;
             selectedPieceParent = (FrameLayout) piece.getParent();
             selectedRow = (int) piece.getTag(R.id.piece_row_tag);
             selectedCol = (int) piece.getTag(R.id.piece_col_tag);
             selectedPiece.setAlpha(0.5f);
+
+            highlightValidMoves(selectedRow, selectedCol);
         });
 
         int gridIndex = (row + 1) * 10 + (col + 1);
@@ -257,6 +290,58 @@ public class MainActivity extends AppCompatActivity {
         int rowDiff = Math.abs(toRow - fromRow);
         int colDiff = Math.abs(toCol - fromCol);
         return rowDiff == 1 && colDiff == 1;
+    }
+
+    private void highlightValidMoves(int row, int col) {
+        clearHighlights();
+
+        for (int dr = -1; dr <= 1; dr++) {
+            for (int dc = -1; dc <= 1; dc++) {
+                if (Math.abs(dr) == 1 && Math.abs(dc) == 1) { // only diagonal
+                    int newRow = row + dr;
+                    int newCol = col + dc;
+
+                    if (newRow >= 0 && newRow < 8 && newCol >= 0 && newCol < 8) {
+                        FrameLayout target = tileContainers[newRow][newCol];
+                        ImageView tileImage = null;
+
+                        for (int i = 0; i < target.getChildCount(); i++) {
+                            View child = target.getChildAt(i);
+                            if (child instanceof ImageView) {
+                                tileImage = (ImageView) child;
+                                break;
+                            }
+                        }
+
+                        if (tileImage != null && isWhiteTile(tileImage) && target.getChildCount() <= 2) {
+                            for (int i = 0; i < target.getChildCount(); i++) {
+                                View child = target.getChildAt(i);
+                                if ("highlight".equals(child.getTag())) {
+                                    child.setBackgroundResource(R.drawable.tile_highlight);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private void clearHighlights() {
+        for (int r = 0; r < 8; r++) {
+            for (int c = 0; c < 8; c++) {
+                if (tileContainers[r][c] != null) {
+                    for (int i = 0; i < tileContainers[r][c].getChildCount(); i++) {
+                        View child = tileContainers[r][c].getChildAt(i);
+                        if ("highlight".equals(child.getTag())) {
+                            child.setBackgroundResource(0);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private boolean hasAdjacentSameOperator(int[][] operatorIndices, int row, int col, int operatorIndex) {
