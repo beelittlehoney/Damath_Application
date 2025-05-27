@@ -202,7 +202,14 @@ public class MainActivity extends AppCompatActivity {
                             }
                         }
 
-                        if (isValidDiagonalMove(selectedRow, selectedCol, toRow, toCol) || (Math.abs(rowDiff) == 2 && Math.abs(colDiff) == 2)) {
+                        boolean isRegularDiagonal = isValidDiagonalMove(selectedRow, selectedCol, toRow, toCol);
+                        boolean isCapture = Math.abs(rowDiff) == 2 && Math.abs(colDiff) == 2;
+
+                        // Allow forward-only for regular moves
+                        boolean isForward = ("red".equals(currentTurn) && toRow > selectedRow) ||
+                                ("blue".equals(currentTurn) && toRow < selectedRow);
+
+                        if ((isRegularDiagonal && isForward) || isCapture) {
                             selectedPieceParent.removeView(selectedPiece);
                             targetCell.addView(selectedPiece);
 
@@ -331,15 +338,21 @@ public class MainActivity extends AppCompatActivity {
         clearHighlights();
 
         String color = (String) selectedPiece.getTag(R.id.piece_color_tag);
-        int[][] directions = {{1, 1}, {1, -1}, {-1, 1}, {-1, -1}}; // all diagonals
+        int[][] directions;
+        if ("red".equals(color)) {
+            directions = new int[][]{{1, 1}, {1, -1}}; // move downward only
+        } else {
+            directions = new int[][]{{-1, 1}, {-1, -1}}; // move upward only
+        }
 
         for (int[] dir : directions) {
             int dRow = dir[0], dCol = dir[1];
             int moveRow = row + dRow;
             int moveCol = col + dCol;
 
-            // Regular diagonal move
-            if (isInBounds(moveRow, moveCol)) {
+            // Regular diagonal move — only forward allowed
+            boolean isForward = ("red".equals(color) && dRow > 0) || ("blue".equals(color) && dRow < 0);
+            if (isForward && isInBounds(moveRow, moveCol)) {
                 FrameLayout target = tileContainers[moveRow][moveCol];
                 if (target.getChildCount() <= 2) {
                     highlightTile(target, false);
