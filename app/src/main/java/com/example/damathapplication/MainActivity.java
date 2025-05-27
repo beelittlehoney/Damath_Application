@@ -216,15 +216,24 @@ public class MainActivity extends AppCompatActivity {
                             selectedPiece.setTag(R.id.piece_row_tag, toRow);
                             selectedPiece.setTag(R.id.piece_col_tag, toCol);
 
-                            selectedPiece.setAlpha(1.0f);
-                            selectedPiece = null;
-                            selectedPieceParent = null;
+                            selectedRow = toRow;
+                            selectedCol = toCol;
+                            selectedPieceParent = targetCell;
 
                             clearHighlights();
 
-                            currentTurn = currentTurn.equals("red") ? "blue" : "red";
-                            turnIndicatorTextView.setText(
-                                    (currentTurn.equals("red") ? player1Name : player2Name) + "'s turn");
+                            if (isCapture && hasMoreCaptures(selectedPiece, toRow, toCol)) {
+                                selectedPiece.setAlpha(0.5f);
+                                highlightValidCaptures(toRow, toCol); // Only highlight captures now
+                            } else {
+                                selectedPiece.setAlpha(1.0f);
+                                selectedPiece = null;
+                                selectedPieceParent = null;
+
+                                currentTurn = currentTurn.equals("red") ? "blue" : "red";
+                                turnIndicatorTextView.setText(
+                                        (currentTurn.equals("red") ? player1Name : player2Name) + "'s turn");
+                            }
                         }
                     }
                 });
@@ -412,6 +421,39 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void highlightValidCaptures(int row, int col) {
+        String color = (String) selectedPiece.getTag(R.id.piece_color_tag);
+        int[][] directions = {{1,1},{1,-1},{-1,1},{-1,-1}};
+
+        for (int[] dir : directions) {
+            int midRow = row + dir[0];
+            int midCol = col + dir[1];
+            int jumpRow = row + 2 * dir[0];
+            int jumpCol = col + 2 * dir[1];
+
+            if (isInBounds(midRow, midCol) && isInBounds(jumpRow, jumpCol)) {
+                FrameLayout midCell = tileContainers[midRow][midCol];
+                FrameLayout jumpCell = tileContainers[jumpRow][jumpCol];
+
+                ImageView midPiece = null;
+                for (int i = 0; i < midCell.getChildCount(); i++) {
+                    View child = midCell.getChildAt(i);
+                    if (child instanceof ImageView && child.getTag(R.id.piece_color_tag) != null) {
+                        midPiece = (ImageView) child;
+                        break;
+                    }
+                }
+
+                boolean isOpponent = midPiece != null && !((String) midPiece.getTag(R.id.piece_color_tag)).equals(color);
+                boolean jumpEmpty = jumpCell.getChildCount() <= 2;
+
+                if (isOpponent && jumpEmpty) {
+                    highlightTile(jumpCell, true);
+                }
+            }
+        }
+    }
+
     private void clearHighlights() {
         for (int r = 0; r < 8; r++) {
             for (int c = 0; c < 8; c++) {
@@ -463,6 +505,40 @@ public class MainActivity extends AppCompatActivity {
                 break;
             }
         }
+    }
+
+    private boolean hasMoreCaptures(ImageView piece, int row, int col) {
+        String color = (String) piece.getTag(R.id.piece_color_tag);
+        int[][] directions = {{1,1},{1,-1},{-1,1},{-1,-1}};
+
+        for (int[] dir : directions) {
+            int midRow = row + dir[0];
+            int midCol = col + dir[1];
+            int jumpRow = row + 2 * dir[0];
+            int jumpCol = col + 2 * dir[1];
+
+            if (isInBounds(midRow, midCol) && isInBounds(jumpRow, jumpCol)) {
+                FrameLayout midCell = tileContainers[midRow][midCol];
+                FrameLayout jumpCell = tileContainers[jumpRow][jumpCol];
+
+                ImageView midPiece = null;
+                for (int i = 0; i < midCell.getChildCount(); i++) {
+                    View child = midCell.getChildAt(i);
+                    if (child instanceof ImageView && child.getTag(R.id.piece_color_tag) != null) {
+                        midPiece = (ImageView) child;
+                        break;
+                    }
+                }
+
+                boolean isOpponent = midPiece != null && !((String) midPiece.getTag(R.id.piece_color_tag)).equals(color);
+                boolean jumpEmpty = jumpCell.getChildCount() <= 2;
+
+                if (isOpponent && jumpEmpty) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     private boolean hasAdjacentSameOperator(int[][] operatorIndices, int row, int col, int operatorIndex) {
