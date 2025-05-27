@@ -338,28 +338,25 @@ public class MainActivity extends AppCompatActivity {
         clearHighlights();
 
         String color = (String) selectedPiece.getTag(R.id.piece_color_tag);
-        int[][] directions;
-        if ("red".equals(color)) {
-            directions = new int[][]{{1, 1}, {1, -1}}; // move downward only
-        } else {
-            directions = new int[][]{{-1, 1}, {-1, -1}}; // move upward only
-        }
 
-        for (int[] dir : directions) {
+        // All possible diagonal directions (for capture)
+        int[][] allDirections = {{1, 1}, {1, -1}, {-1, 1}, {-1, -1}};
+
+        for (int[] dir : allDirections) {
             int dRow = dir[0], dCol = dir[1];
             int moveRow = row + dRow;
             int moveCol = col + dCol;
 
-            // Regular diagonal move — only forward allowed
+            // Regular move — only forward
             boolean isForward = ("red".equals(color) && dRow > 0) || ("blue".equals(color) && dRow < 0);
             if (isForward && isInBounds(moveRow, moveCol)) {
                 FrameLayout target = tileContainers[moveRow][moveCol];
                 if (target.getChildCount() <= 2) {
-                    highlightTile(target, false);
+                    highlightTile(target, false); // yellow
                 }
             }
 
-            // Capture move
+            // Capture move — all directions
             int midRow = row + dRow;
             int midCol = col + dCol;
             int jumpRow = row + 2 * dRow;
@@ -382,14 +379,13 @@ public class MainActivity extends AppCompatActivity {
                 boolean jumpEmpty = jumpCell.getChildCount() <= 2;
 
                 if (isOpponent && jumpEmpty) {
-                    highlightTile(jumpCell, true); // red for landing
-                    highlightTile(midCell, true);  // red for capture piece
+                    highlightTile(jumpCell, true); // green
+                    highlightTile(midCell, true);  // green (captured piece)
 
-                    // Display operator image above the captured piece
+                    // Display operator icon like exponent
                     ImageView midTileImage = (ImageView) midCell.getChildAt(0);
                     int operatorResId = (Integer) midTileImage.getTag(R.id.tile_type_id);
 
-                    // Map tile operator to exponent-style icon
                     int operatorIcon = -1;
                     if (operatorResId == R.drawable.tile_add) operatorIcon = R.drawable.operator_add;
                     else if (operatorResId == R.drawable.tile_minus) operatorIcon = R.drawable.operator_minus;
@@ -400,13 +396,12 @@ public class MainActivity extends AppCompatActivity {
                         ImageView operatorView = new ImageView(this);
                         operatorView.setImageResource(operatorIcon);
 
-                        // Position it like an exponent
                         FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
-                            FrameLayout.LayoutParams.WRAP_CONTENT,
-                            FrameLayout.LayoutParams.WRAP_CONTENT
+                                FrameLayout.LayoutParams.WRAP_CONTENT,
+                                FrameLayout.LayoutParams.WRAP_CONTENT
                         );
-                        params.topMargin = 10;  // adjust to fit
-                        params.leftMargin = 50; // adjust as needed
+                        params.topMargin = 10;
+                        params.leftMargin = 50;
                         operatorView.setLayoutParams(params);
                         operatorView.setTag("temp_operator");
 
