@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="tile_type_id" type="id" />
+    <item name="piece_row_tag" type="id" />
+    <item name="piece_col_tag" type="id" />
+</resources>

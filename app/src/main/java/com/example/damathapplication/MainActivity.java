@@ -21,7 +21,10 @@ public class MainActivity extends AppCompatActivity {
     private TextView player1ScoreTextView, player2ScoreTextView, turnIndicatorTextView;
     private ImageButton homeButton;
     private GridLayout gridBoard;
-
+    private ImageView selectedPiece = null;
+    private FrameLayout selectedPieceParent = null;
+    private int selectedRow = -1;
+    private int selectedCol = -1;
     private final int[] numberTiles = {
             R.drawable.tile_number_1,
             R.drawable.tile_number_2,
@@ -123,15 +126,42 @@ public class MainActivity extends AppCompatActivity {
                         tile.setImageResource(R.drawable.tile_black);
                     } else {
                         int operatorIndex = random.nextInt(operatorTiles.length);
-                        tile.setImageResource(operatorTiles[operatorIndex]);
+                        int operatorTileId = operatorTiles[operatorIndex];
+                        tile.setImageResource(operatorTileId);
+                        tile.setTag(R.id.tile_type_id, operatorTileId);
                     }
                     boardTiles[innerRow][innerCol] = tile;
                 }
 
-                tileContainer.addView(tile);
+                tileContainer.setOnClickListener(v -> {
+                    if (selectedPiece != null && tile.getDrawable() != null &&
+                            isWhiteTile(tile)) {
+
+                        int targetIndex = gridBoard.indexOfChild(v);
+                        int targetRow = targetIndex / 10 - 1;
+                        int targetCol = targetIndex % 10 - 1;
+
+                        if (isValidDiagonalMove(selectedRow, selectedCol, targetRow, targetCol)) {
+                            selectedPieceParent.removeView(selectedPiece);
+                            ((FrameLayout) v).addView(selectedPiece);
+
+                            selectedPiece.setTag(R.id.piece_row_tag, targetRow);
+                            selectedPiece.setTag(R.id.piece_col_tag, targetCol);
+
+                            selectedPiece.setAlpha(1.0f);
+                            selectedPiece = null;
+                            selectedPieceParent = null;
+                        }
+                    }
+                });
+
+                // 👇 Important: Add tile image last so it's always behind the piece
+                tileContainer.addView(tile, 0); // Add at index 0 (bottom)
+
                 gridBoard.addView(tileContainer);
             }
         }
+
 
         // Fixed piece positions (row, col are 0-based)
         int[][] redPositions = {
@@ -171,6 +201,17 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private boolean isWhiteTile(ImageView tile) {
+        int id = (Integer) tile.getTag(R.id.tile_type_id); // fallback if we store tag
+        for (int op : operatorTiles) {
+            if (tile.getDrawable() != null && tile.getDrawable().getConstantState() != null &&
+                    getResources().getDrawable(op).getConstantState().equals(tile.getDrawable().getConstantState())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private void addPieceToTile(int row, int col, String pieceName, int tileSizePx) {
         int resId = getResources().getIdentifier(pieceName, "drawable", getPackageName());
 
@@ -178,13 +219,31 @@ public class MainActivity extends AppCompatActivity {
         piece.setLayoutParams(new FrameLayout.LayoutParams(tileSizePx, tileSizePx));
         piece.setScaleType(ImageView.ScaleType.FIT_CENTER);
         piece.setImageResource(resId);
+
+        // Store current coordinates
+        piece.setTag(R.id.piece_row_tag, row);
+        piece.setTag(R.id.piece_col_tag, col);
+
         piece.setOnClickListener(v -> {
-            // TODO: Handle piece click logic
+            if (selectedPiece != null) {
+                selectedPiece.setAlpha(1.0f);
+            }
+            selectedPiece = piece;
+            selectedPieceParent = (FrameLayout) piece.getParent();
+            selectedRow = (int) piece.getTag(R.id.piece_row_tag);
+            selectedCol = (int) piece.getTag(R.id.piece_col_tag);
+            selectedPiece.setAlpha(0.5f);
         });
 
         int gridIndex = (row + 1) * 10 + (col + 1);
         FrameLayout cell = (FrameLayout) gridBoard.getChildAt(gridIndex);
         cell.addView(piece);
+    }
+
+    private boolean isValidDiagonalMove(int fromRow, int fromCol, int toRow, int toCol) {
+        int rowDiff = Math.abs(toRow - fromRow);
+        int colDiff = Math.abs(toCol - fromCol);
+        return rowDiff == 1 && colDiff == 1;
     }
 
     private boolean hasAdjacentSameOperator(int[][] operatorIndices, int row, int col, int operatorIndex) {
