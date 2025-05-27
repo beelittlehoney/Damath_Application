@@ -330,34 +330,45 @@ public class MainActivity extends AppCompatActivity {
     private void highlightValidMoves(int row, int col) {
         clearHighlights();
 
-        for (int dr = -1; dr <= 1; dr++) {
-            for (int dc = -1; dc <= 1; dc++) {
-                if (Math.abs(dr) == 1 && Math.abs(dc) == 1) { // only diagonal
-                    int newRow = row + dr;
-                    int newCol = col + dc;
+        String color = (String) selectedPiece.getTag(R.id.piece_color_tag);
+        int direction = color.equals("red") ? 1 : -1;
 
-                    if (newRow >= 0 && newRow < 8 && newCol >= 0 && newCol < 8) {
-                        FrameLayout target = tileContainers[newRow][newCol];
-                        ImageView tileImage = null;
+        for (int dc = -1; dc <= 1; dc += 2) {
+            int moveRow = row + direction;
+            int moveCol = col + dc;
 
-                        for (int i = 0; i < target.getChildCount(); i++) {
-                            View child = target.getChildAt(i);
-                            if (child instanceof ImageView) {
-                                tileImage = (ImageView) child;
-                                break;
-                            }
-                        }
+            // Regular forward diagonal move
+            if (isInBounds(moveRow, moveCol)) {
+                FrameLayout target = tileContainers[moveRow][moveCol];
+                if (target.getChildCount() <= 2) {
+                    highlightTile(target);
+                }
+            }
 
-                        if (tileImage != null && isWhiteTile(tileImage) && target.getChildCount() <= 2) {
-                            for (int i = 0; i < target.getChildCount(); i++) {
-                                View child = target.getChildAt(i);
-                                if ("highlight".equals(child.getTag())) {
-                                    child.setBackgroundResource(R.drawable.tile_highlight);
-                                    break;
-                                }
-                            }
-                        }
+            // Capture move (jump over opponent)
+            int midRow = row + direction;
+            int midCol = col + dc;
+            int jumpRow = row + 2 * direction;
+            int jumpCol = col + 2 * dc;
+
+            if (isInBounds(midRow, midCol) && isInBounds(jumpRow, jumpCol)) {
+                FrameLayout midCell = tileContainers[midRow][midCol];
+                FrameLayout jumpCell = tileContainers[jumpRow][jumpCol];
+
+                ImageView midPiece = null;
+                for (int i = 0; i < midCell.getChildCount(); i++) {
+                    View child = midCell.getChildAt(i);
+                    if (child instanceof ImageView && child.getTag(R.id.piece_color_tag) != null) {
+                        midPiece = (ImageView) child;
+                        break;
                     }
+                }
+
+                boolean isOpponent = midPiece != null && !((String) midPiece.getTag(R.id.piece_color_tag)).equals(color);
+                boolean jumpEmpty = jumpCell.getChildCount() <= 2;
+
+                if (isOpponent && jumpEmpty) {
+                    highlightTile(jumpCell);
                 }
             }
         }
@@ -391,6 +402,20 @@ public class MainActivity extends AppCompatActivity {
         if (operatorResId == R.drawable.tile_multiply) return a * b;
         if (operatorResId == R.drawable.tile_divide) return b != 0 ? a / b : 0;
         return 0;
+    }
+
+    private boolean isInBounds(int row, int col) {
+        return row >= 0 && row < 8 && col >= 0 && col < 8;
+    }
+
+    private void highlightTile(FrameLayout tile) {
+        for (int i = 0; i < tile.getChildCount(); i++) {
+            View child = tile.getChildAt(i);
+            if ("highlight".equals(child.getTag())) {
+                child.setBackgroundResource(R.drawable.tile_highlight);
+                break;
+            }
+        }
     }
 
     private boolean hasAdjacentSameOperator(int[][] operatorIndices, int row, int col, int operatorIndex) {
