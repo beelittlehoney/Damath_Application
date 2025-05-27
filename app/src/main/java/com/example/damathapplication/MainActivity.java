@@ -24,6 +24,8 @@ public class MainActivity extends AppCompatActivity {
     private String currentTurn = "red"; // red starts first
     private String player1Name = "Player 1";
     private String player2Name = "Player 2";
+    private int player1Score = 0;
+    private int player2Score = 0;
     private FrameLayout selectedPieceParent = null;
     private ImageView selectedPiece = null;
     private ImageButton homeButton;
@@ -152,29 +154,60 @@ public class MainActivity extends AppCompatActivity {
                     if (selectedPiece != null) {
                         FrameLayout targetCell = (FrameLayout) v;
 
-                        ImageView tileImage = null;
-                        for (int i = 0; i < targetCell.getChildCount(); i++) {
-                            View child = targetCell.getChildAt(i);
-                            if (child instanceof ImageView) {
-                                tileImage = (ImageView) child;
-                                break;
+                        int targetIndex = gridBoard.indexOfChild(v);
+                        int toRow = targetIndex / 10 - 1;
+                        int toCol = targetIndex % 10 - 1;
+
+                        if (toRow < 0 || toRow >= 8 || toCol < 0 || toCol >= 8) return;
+
+                        int rowDiff = toRow - selectedRow;
+                        int colDiff = toCol - selectedCol;
+
+                        if (Math.abs(rowDiff) == 2 && Math.abs(colDiff) == 2) {
+                            int midRow = (selectedRow + toRow) / 2;
+                            int midCol = (selectedCol + toCol) / 2;
+                            FrameLayout midCell = tileContainers[midRow][midCol];
+
+                            ImageView midPiece = null;
+                            for (int i = 0; i < midCell.getChildCount(); i++) {
+                                View child = midCell.getChildAt(i);
+                                if (child instanceof ImageView && child.getTag(R.id.piece_color_tag) != null) {
+                                    midPiece = (ImageView) child;
+                                    break;
+                                }
+                            }
+
+                            if (midPiece != null) {
+                                String midColor = (String) midPiece.getTag(R.id.piece_color_tag);
+                                String currentColor = (String) selectedPiece.getTag(R.id.piece_color_tag);
+
+                                if (!midColor.equals(currentColor)) {
+                                    int a = extractPieceValue(selectedPiece);
+                                    int b = extractPieceValue(midPiece);
+
+                                    ImageView tileImage = (ImageView) midCell.getChildAt(0);
+                                    int opId = (Integer) tileImage.getTag(R.id.tile_type_id);
+                                    int score = evaluateOperation(a, b, opId);
+
+                                    if (currentColor.equals("red")) {
+                                        player1Score += score;
+                                        player1ScoreTextView.setText(player1Name + ": " + player1Score);
+                                    } else {
+                                        player2Score += score;
+                                        player2ScoreTextView.setText(player2Name + ": " + player2Score);
+                                    }
+
+                                    midCell.removeView(midPiece); // capture opponent
+                                }
                             }
                         }
 
-                        if (tileImage == null || !isWhiteTile(tileImage)) return;
-
-                        int targetIndex = gridBoard.indexOfChild(v);
-                        int targetRow = targetIndex / 10 - 1;
-                        int targetCol = targetIndex % 10 - 1;
-
-                        if (targetCell.getChildCount() > 2) return;
-
-                        if (isValidDiagonalMove(selectedRow, selectedCol, targetRow, targetCol)) {
+                        if (isValidDiagonalMove(selectedRow, selectedCol, toRow, toCol) || (Math.abs(rowDiff) == 2 && Math.abs(colDiff) == 2)) {
                             selectedPieceParent.removeView(selectedPiece);
                             targetCell.addView(selectedPiece);
 
-                            selectedPiece.setTag(R.id.piece_row_tag, targetRow);
-                            selectedPiece.setTag(R.id.piece_col_tag, targetCol);
+                            selectedPiece.setTag(R.id.piece_row_tag, toRow);
+                            selectedPiece.setTag(R.id.piece_col_tag, toCol);
 
                             selectedPiece.setAlpha(1.0f);
                             selectedPiece = null;
@@ -284,6 +317,8 @@ public class MainActivity extends AppCompatActivity {
         int gridIndex = (row + 1) * 10 + (col + 1);
         FrameLayout cell = (FrameLayout) gridBoard.getChildAt(gridIndex);
         cell.addView(piece);
+
+        piece.setTag(R.id.tile_type_id, resId);
     }
 
     private boolean isValidDiagonalMove(int fromRow, int fromCol, int toRow, int toCol) {
@@ -342,6 +377,20 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         }
+    }
+
+    private int extractPieceValue(ImageView piece) {
+        int resId = (Integer) piece.getTag(R.id.tile_type_id);
+        String name = getResources().getResourceEntryName(resId);
+        return Integer.parseInt(name.replaceAll("[^0-9]", ""));
+    }
+
+    private int evaluateOperation(int a, int b, int operatorResId) {
+        if (operatorResId == R.drawable.tile_add) return a + b;
+        if (operatorResId == R.drawable.tile_minus) return a - b;
+        if (operatorResId == R.drawable.tile_multiply) return a * b;
+        if (operatorResId == R.drawable.tile_divide) return b != 0 ? a / b : 0;
+        return 0;
     }
 
     private boolean hasAdjacentSameOperator(int[][] operatorIndices, int row, int col, int operatorIndex) {
