@@ -4,12 +4,16 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
 import android.util.TypedValue;
+import android.widget.FrameLayout;
 import android.widget.GridLayout;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 import java.util.Random;
 
@@ -85,47 +89,84 @@ public class MainActivity extends AppCompatActivity {
         DisplayMetrics displayMetrics = getResources().getDisplayMetrics();
         int screenWidth = displayMetrics.widthPixels;
         int totalMarginPx = (int) TypedValue.applyDimension(
-            TypedValue.COMPLEX_UNIT_DIP, 32, displayMetrics);
+                TypedValue.COMPLEX_UNIT_DIP, 32, displayMetrics);
         int tileSizePx = (screenWidth - totalMarginPx) / 10;
 
         gridBoard.removeAllViews();
         Random random = new Random();
 
+        // Track white tile positions for placing pieces
+        List<int[]> whiteTilePositions = new ArrayList<>();
+        ImageView[][] boardTiles = new ImageView[8][8];
+
         for (int row = 0; row < 10; row++) {
             for (int col = 0; col < 10; col++) {
-                ImageView tile = new ImageView(this);
                 GridLayout.LayoutParams params = new GridLayout.LayoutParams();
                 params.width = tileSizePx;
                 params.height = tileSizePx;
-                tile.setLayoutParams(params);
+
+                FrameLayout tileContainer = new FrameLayout(this);
+                tileContainer.setLayoutParams(params);
+
+                ImageView tile = new ImageView(this);
+                tile.setLayoutParams(new FrameLayout.LayoutParams(
+                        FrameLayout.LayoutParams.MATCH_PARENT,
+                        FrameLayout.LayoutParams.MATCH_PARENT));
                 tile.setScaleType(ImageView.ScaleType.FIT_CENTER);
 
                 if ((row == 0 || row == 9) && (col == 0 || col == 9)) {
-                    // Corners
                     tile.setImageResource(R.drawable.tile_white);
                 } else if (row == 0 || row == 9) {
-                    // Top and bottom number labels
                     tile.setImageResource(numberTiles[col - 1]);
                 } else if (col == 0 || col == 9) {
-                    // Left and right number labels
                     tile.setImageResource(numberTiles[row - 1]);
                 } else {
-                    // 8x8 game board
                     int innerRow = row - 1;
                     int innerCol = col - 1;
                     if ((innerRow + innerCol) % 2 == 0) {
-                        // Black tile
                         tile.setImageResource(R.drawable.tile_black);
                     } else {
-                        // White tile with random operator
                         int operatorIndex = random.nextInt(operatorTiles.length);
                         tile.setImageResource(operatorTiles[operatorIndex]);
+                        whiteTilePositions.add(new int[]{innerRow, innerCol});
                     }
+                    boardTiles[innerRow][innerCol] = tile;
                 }
 
-                gridBoard.addView(tile);
+                tileContainer.addView(tile);
+                gridBoard.addView(tileContainer);
             }
         }
+
+        // Shuffle and assign 9 white tiles to each player
+        Collections.shuffle(whiteTilePositions);
+        List<int[]> bluePositions = whiteTilePositions.subList(0, 9);
+        List<int[]> redPositions = whiteTilePositions.subList(9, 18);
+
+        for (int i = 0; i < 9; i++) {
+            int[] bluePos = bluePositions.get(i);
+            int[] redPos = redPositions.get(i);
+
+            addPieceToTile(bluePos[0], bluePos[1], "blue_piece_" + (i + 1), tileSizePx);
+            addPieceToTile(redPos[0], redPos[1], "red_piece_" + (i + 1), tileSizePx);
+        }
+    }
+
+    private void addPieceToTile(int row, int col, String pieceName, int tileSizePx) {
+        int resId = getResources().getIdentifier(pieceName, "drawable", getPackageName());
+
+        ImageView piece = new ImageView(this);
+        piece.setLayoutParams(new FrameLayout.LayoutParams(tileSizePx, tileSizePx));
+        piece.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        piece.setImageResource(resId);
+        piece.setOnClickListener(v -> {
+            // TODO: Handle piece click logic
+        });
+
+        // Find the correct index in gridBoard for the 10x10 layout
+        int gridIndex = (row + 1) * 10 + (col + 1);
+        FrameLayout cell = (FrameLayout) gridBoard.getChildAt(gridIndex);
+        cell.addView(piece);
     }
 
     private boolean hasAdjacentSameOperator(int[][] operatorIndices, int row, int col, int operatorIndex) {
