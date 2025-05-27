@@ -20,22 +20,22 @@ public class MainActivity extends AppCompatActivity {
 
     // Array of number tile resource IDs (tile_number_1 to tile_number_8)
     private final int[] numberTiles = {
-            R.drawable.tile_number_1,
-            R.drawable.tile_number_2,
-            R.drawable.tile_number_3,
-            R.drawable.tile_number_4,
-            R.drawable.tile_number_5,
-            R.drawable.tile_number_6,
-            R.drawable.tile_number_7,
-            R.drawable.tile_number_8
+        R.drawable.tile_number_1,
+        R.drawable.tile_number_2,
+        R.drawable.tile_number_3,
+        R.drawable.tile_number_4,
+        R.drawable.tile_number_5,
+        R.drawable.tile_number_6,
+        R.drawable.tile_number_7,
+        R.drawable.tile_number_8
     };
 
     // Array of operator tile resource IDs
     private final int[] operatorTiles = {
-            R.drawable.tile_add,
-            R.drawable.tile_minus,
-            R.drawable.tile_multiply,
-            R.drawable.tile_divide
+        R.drawable.tile_add,
+        R.drawable.tile_minus,
+        R.drawable.tile_multiply,
+        R.drawable.tile_divide
     };
 
     @Override
@@ -85,7 +85,7 @@ public class MainActivity extends AppCompatActivity {
         DisplayMetrics displayMetrics = getResources().getDisplayMetrics();
         int screenWidth = displayMetrics.widthPixels;
         int totalMarginPx = (int) TypedValue.applyDimension(
-                TypedValue.COMPLEX_UNIT_DIP, 32, displayMetrics);
+            TypedValue.COMPLEX_UNIT_DIP, 32, displayMetrics);
         int tileSizePx = (screenWidth - totalMarginPx) / 10;
 
         gridBoard.removeAllViews();
