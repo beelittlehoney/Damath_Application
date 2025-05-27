@@ -22,24 +22,22 @@ public class MainActivity extends AppCompatActivity {
     private ImageButton homeButton;
     private GridLayout gridBoard;
 
-    // Array of number tile resource IDs (tile_number_1 to tile_number_8)
     private final int[] numberTiles = {
-        R.drawable.tile_number_1,
-        R.drawable.tile_number_2,
-        R.drawable.tile_number_3,
-        R.drawable.tile_number_4,
-        R.drawable.tile_number_5,
-        R.drawable.tile_number_6,
-        R.drawable.tile_number_7,
-        R.drawable.tile_number_8
+            R.drawable.tile_number_1,
+            R.drawable.tile_number_2,
+            R.drawable.tile_number_3,
+            R.drawable.tile_number_4,
+            R.drawable.tile_number_5,
+            R.drawable.tile_number_6,
+            R.drawable.tile_number_7,
+            R.drawable.tile_number_8
     };
 
-    // Array of operator tile resource IDs
     private final int[] operatorTiles = {
-        R.drawable.tile_add,
-        R.drawable.tile_minus,
-        R.drawable.tile_multiply,
-        R.drawable.tile_divide
+            R.drawable.tile_add,
+            R.drawable.tile_minus,
+            R.drawable.tile_multiply,
+            R.drawable.tile_divide
     };
 
     @Override
@@ -55,7 +53,7 @@ public class MainActivity extends AppCompatActivity {
         homeButton.setOnClickListener(view -> {
             Intent homeIntent = new Intent(MainActivity.this, HomePageActivity.class);
             startActivity(homeIntent);
-            finish(); // Close the current activity
+            finish();
         });
     }
 
@@ -89,14 +87,12 @@ public class MainActivity extends AppCompatActivity {
         DisplayMetrics displayMetrics = getResources().getDisplayMetrics();
         int screenWidth = displayMetrics.widthPixels;
         int totalMarginPx = (int) TypedValue.applyDimension(
-                TypedValue.COMPLEX_UNIT_DIP, 32, displayMetrics);
+            TypedValue.COMPLEX_UNIT_DIP, 32, displayMetrics);
         int tileSizePx = (screenWidth - totalMarginPx) / 10;
 
         gridBoard.removeAllViews();
         Random random = new Random();
 
-        // Track white tile positions for placing pieces
-        List<int[]> whiteTilePositions = new ArrayList<>();
         ImageView[][] boardTiles = new ImageView[8][8];
 
         for (int row = 0; row < 10; row++) {
@@ -110,8 +106,8 @@ public class MainActivity extends AppCompatActivity {
 
                 ImageView tile = new ImageView(this);
                 tile.setLayoutParams(new FrameLayout.LayoutParams(
-                        FrameLayout.LayoutParams.MATCH_PARENT,
-                        FrameLayout.LayoutParams.MATCH_PARENT));
+                    FrameLayout.LayoutParams.MATCH_PARENT,
+                    FrameLayout.LayoutParams.MATCH_PARENT));
                 tile.setScaleType(ImageView.ScaleType.FIT_CENTER);
 
                 if ((row == 0 || row == 9) && (col == 0 || col == 9)) {
@@ -128,7 +124,6 @@ public class MainActivity extends AppCompatActivity {
                     } else {
                         int operatorIndex = random.nextInt(operatorTiles.length);
                         tile.setImageResource(operatorTiles[operatorIndex]);
-                        whiteTilePositions.add(new int[]{innerRow, innerCol});
                     }
                     boardTiles[innerRow][innerCol] = tile;
                 }
@@ -138,17 +133,41 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
-        // Shuffle and assign 9 white tiles to each player
-        Collections.shuffle(whiteTilePositions);
-        List<int[]> bluePositions = whiteTilePositions.subList(0, 9);
-        List<int[]> redPositions = whiteTilePositions.subList(9, 18);
+        // Fixed piece positions (row, col are 0-based)
+        int[][] redPositions = {
+            {0, 1}, {0, 3}, {0, 5}, {0, 7},
+            {1, 0}, {1, 2}, {1, 4}, {1, 6},
+            {2, 1}, {2, 3}, {2, 5}, {2, 7}
+        };
 
-        for (int i = 0; i < 9; i++) {
-            int[] bluePos = bluePositions.get(i);
-            int[] redPos = redPositions.get(i);
+        int[][] bluePositions = {
+            {5, 0}, {5, 2}, {5, 4}, {5, 6},
+            {6, 1}, {6, 3}, {6, 5}, {6, 7},
+            {7, 0}, {7, 2}, {7, 4}, {7, 6}
+        };
 
-            addPieceToTile(bluePos[0], bluePos[1], "blue_piece_" + (i + 1), tileSizePx);
-            addPieceToTile(redPos[0], redPos[1], "red_piece_" + (i + 1), tileSizePx);
+        // Generate red pieces: 1-9 + 3 random repeats
+        List<Integer> redPieces = new ArrayList<>();
+        for (int i = 1; i <= 9; i++) redPieces.add(i);
+        for (int i = 0; i < 3; i++) redPieces.add(redPieces.get(random.nextInt(9)));
+        Collections.shuffle(redPieces);
+
+        // Generate blue pieces: 1-9 + 3 random repeats
+        List<Integer> bluePieces = new ArrayList<>();
+        for (int i = 1; i <= 9; i++) bluePieces.add(i);
+        for (int i = 0; i < 3; i++) bluePieces.add(bluePieces.get(random.nextInt(9)));
+        Collections.shuffle(bluePieces);
+
+        // Place red pieces
+        for (int i = 0; i < 12; i++) {
+            int[] pos = redPositions[i];
+            addPieceToTile(pos[0], pos[1], "red_piece_" + redPieces.get(i), tileSizePx);
+        }
+
+        // Place blue pieces
+        for (int i = 0; i < 12; i++) {
+            int[] pos = bluePositions[i];
+            addPieceToTile(pos[0], pos[1], "blue_piece_" + bluePieces.get(i), tileSizePx);
         }
     }
 
@@ -163,18 +182,15 @@ public class MainActivity extends AppCompatActivity {
             // TODO: Handle piece click logic
         });
 
-        // Find the correct index in gridBoard for the 10x10 layout
         int gridIndex = (row + 1) * 10 + (col + 1);
         FrameLayout cell = (FrameLayout) gridBoard.getChildAt(gridIndex);
         cell.addView(piece);
     }
 
     private boolean hasAdjacentSameOperator(int[][] operatorIndices, int row, int col, int operatorIndex) {
-        // Check left
         if (col > 0 && operatorIndices[row][col - 1] == operatorIndex) {
             return true;
         }
-        // Check up
         return row > 0 && operatorIndices[row - 1][col] == operatorIndex;
     }
 }
