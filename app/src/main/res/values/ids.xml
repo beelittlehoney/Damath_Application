@@ -3,4 +3,5 @@
     <item name="tile_type_id" type="id" />
     <item name="piece_row_tag" type="id" />
     <item name="piece_col_tag" type="id" />
+    <item name="piece_color_tag" type="id" />
 </resources>

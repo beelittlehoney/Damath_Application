@@ -19,12 +19,16 @@ import java.util.Random;
 
 public class MainActivity extends AppCompatActivity {
     private TextView player1ScoreTextView, player2ScoreTextView, turnIndicatorTextView;
+    private String currentTurn = "red"; // red starts first
+    private String player1Name = "Player 1";
+    private String player2Name = "Player 2";
+    private FrameLayout selectedPieceParent = null;
+    private ImageView selectedPiece = null;
     private ImageButton homeButton;
     private GridLayout gridBoard;
-    private ImageView selectedPiece = null;
-    private FrameLayout selectedPieceParent = null;
     private int selectedRow = -1;
     private int selectedCol = -1;
+
     private final int[] numberTiles = {
             R.drawable.tile_number_1,
             R.drawable.tile_number_2,
@@ -70,8 +74,8 @@ public class MainActivity extends AppCompatActivity {
 
     public void setupPlayerInfo() {
         Intent intent = getIntent();
-        String player1Name = intent.getStringExtra("player1Name");
-        String player2Name = intent.getStringExtra("player2Name");
+        player1Name = intent.getStringExtra("player1Name");
+        player2Name = intent.getStringExtra("player2Name");
 
         if (Objects.equals(player1Name, "")) {
             player1Name = "Player 1";
@@ -151,11 +155,16 @@ public class MainActivity extends AppCompatActivity {
                             selectedPiece.setAlpha(1.0f);
                             selectedPiece = null;
                             selectedPieceParent = null;
+
+                            // Switch turn
+                            currentTurn = currentTurn.equals("red") ? "blue" : "red";
+                            turnIndicatorTextView.setText(
+                                    (currentTurn.equals("red") ? player1Name : player2Name) + "'s turn");
                         }
                     }
                 });
 
-                // 👇 Important: Add tile image last so it's always behind the piece
+                // Important: Add tile image last so it's always behind the piece
                 tileContainer.addView(tile, 0); // Add at index 0 (bottom)
 
                 gridBoard.addView(tileContainer);
@@ -214,17 +223,21 @@ public class MainActivity extends AppCompatActivity {
 
     private void addPieceToTile(int row, int col, String pieceName, int tileSizePx) {
         int resId = getResources().getIdentifier(pieceName, "drawable", getPackageName());
+        String color = pieceName.startsWith("red") ? "red" : "blue";
 
         ImageView piece = new ImageView(this);
         piece.setLayoutParams(new FrameLayout.LayoutParams(tileSizePx, tileSizePx));
         piece.setScaleType(ImageView.ScaleType.FIT_CENTER);
         piece.setImageResource(resId);
 
-        // Store current coordinates
         piece.setTag(R.id.piece_row_tag, row);
         piece.setTag(R.id.piece_col_tag, col);
+        piece.setTag(R.id.piece_color_tag, color);
 
         piece.setOnClickListener(v -> {
+            String pieceColor = (String) piece.getTag(R.id.piece_color_tag);
+            if (!pieceColor.equals(currentTurn)) return; // Only allow turn owner's piece
+
             if (selectedPiece != null) {
                 selectedPiece.setAlpha(1.0f);
             }
