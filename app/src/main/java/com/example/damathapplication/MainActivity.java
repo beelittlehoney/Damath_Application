@@ -9,6 +9,8 @@ import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
+
+import java.util.Objects;
 import java.util.Random;
 
 public class MainActivity extends AppCompatActivity {
@@ -61,10 +63,18 @@ public class MainActivity extends AppCompatActivity {
         homeButton = findViewById(R.id.homeButton);
     }
 
-    private void setupPlayerInfo() {
+    public void setupPlayerInfo() {
         Intent intent = getIntent();
         String player1Name = intent.getStringExtra("player1Name");
         String player2Name = intent.getStringExtra("player2Name");
+
+        if (Objects.equals(player1Name, "")) {
+            player1Name = "Player 1";
+        }
+
+        if (Objects.equals(player2Name, "")) {
+            player2Name = "Player 2";
+        }
 
         player1ScoreTextView.setText(player1Name + ": 0");
         player2ScoreTextView.setText(player2Name + ": 0");
