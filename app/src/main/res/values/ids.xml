@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <item name="tile_type_id" type="id" />
-    <item name="piece_row_tag" type="id" />
-    <item name="piece_col_tag" type="id" />
-    <item name="piece_color_tag" type="id" />
+    <item type="id" name="piece_row_tag" />
+    <item type="id" name="piece_col_tag" />
+    <item type="id" name="piece_color_tag" />
+    <item type="id" name="tile_type_id" />
+
+    <item type="id" name="is_king_tag" />
 </resources>

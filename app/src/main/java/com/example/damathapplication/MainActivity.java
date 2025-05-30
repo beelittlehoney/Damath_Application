@@ -10,6 +10,7 @@ import android.widget.GridLayout;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
 import java.util.ArrayList;
@@ -17,11 +18,15 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Random;
+import android.media.SoundPool;
+import android.media.AudioAttributes;
+
 
 public class MainActivity extends AppCompatActivity {
     private TextView player1ScoreTextView, player2ScoreTextView, turnIndicatorTextView;
+    private TextView solutionTextView;
     private FrameLayout[][] tileContainers = new FrameLayout[8][8];
-    private String currentTurn = "red"; // red starts first
+    private String currentTurn; // No initial value, will be shuffled
     private String player1Name = "Player 1";
     private String player2Name = "Player 2";
     private int player1Score = 0;
@@ -33,6 +38,14 @@ public class MainActivity extends AppCompatActivity {
     private int selectedRow = -1;
     private int selectedCol = -1;
 
+    public enum StrategyType {
+        NONE,
+        KING_BOUND,
+        CENTER_CONTROL,
+        HIGH_VALUE_CAPTURE,
+        ADVANTAGEOUS_TRADE
+    }
+
     private final int[] numberTiles = {
             R.drawable.tile_number_1,
             R.drawable.tile_number_2,
@@ -43,6 +56,8 @@ public class MainActivity extends AppCompatActivity {
             R.drawable.tile_number_7,
             R.drawable.tile_number_8
     };
+    SoundPool soundPool;
+    int moveSoundId;
 
     private final int[] operatorTiles = {
             R.drawable.tile_add,
@@ -66,12 +81,25 @@ public class MainActivity extends AppCompatActivity {
             startActivity(homeIntent);
             finish();
         });
+
+        AudioAttributes audioAttributes = new AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_GAME)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .build();
+
+        soundPool = new SoundPool.Builder()
+                .setMaxStreams(1)
+                .setAudioAttributes(audioAttributes)
+                .build();
+
+        moveSoundId = soundPool.load(this, R.raw.soundeffects, 1);
     }
 
     private void initializeViews() {
         player1ScoreTextView = findViewById(R.id.player1Score);
         player2ScoreTextView = findViewById(R.id.player2Score);
         turnIndicatorTextView = findViewById(R.id.turnIndicator);
+        solutionTextView = findViewById(R.id.solutionTextView);
         gridBoard = findViewById(R.id.gridBoard);
         homeButton = findViewById(R.id.homeButton);
     }
@@ -91,14 +119,24 @@ public class MainActivity extends AppCompatActivity {
 
         player1ScoreTextView.setText(player1Name + ": 0");
         player2ScoreTextView.setText(player2Name + ": 0");
-        turnIndicatorTextView.setText(player1Name + "'s turn");
+
+        // Randomize starting player
+        Random random = new Random();
+        if (random.nextBoolean()) {
+            currentTurn = "red";
+            turnIndicatorTextView.setText(player1Name + "'s turn");
+        } else {
+            currentTurn = "blue";
+            turnIndicatorTextView.setText(player2Name + "'s turn");
+        }
+        solutionTextView.setText("");
     }
 
     private void setupGameBoard() {
         DisplayMetrics displayMetrics = getResources().getDisplayMetrics();
         int screenWidth = displayMetrics.widthPixels;
         int totalMarginPx = (int) TypedValue.applyDimension(
-            TypedValue.COMPLEX_UNIT_DIP, 32, displayMetrics);
+                TypedValue.COMPLEX_UNIT_DIP, 32, displayMetrics);
         int tileSizePx = (screenWidth - totalMarginPx) / 10;
 
         gridBoard.removeAllViews();
@@ -117,13 +155,13 @@ public class MainActivity extends AppCompatActivity {
 
                 ImageView tile = new ImageView(this);
                 tile.setLayoutParams(new FrameLayout.LayoutParams(
-                    FrameLayout.LayoutParams.MATCH_PARENT,
-                    FrameLayout.LayoutParams.MATCH_PARENT));
+                        FrameLayout.LayoutParams.MATCH_PARENT,
+                        FrameLayout.LayoutParams.MATCH_PARENT));
                 View highlightOverlay = new View(this);
                 highlightOverlay.setLayoutParams(new FrameLayout.LayoutParams(
-                    FrameLayout.LayoutParams.MATCH_PARENT,
-                    FrameLayout.LayoutParams.MATCH_PARENT));
-                highlightOverlay.setBackgroundResource(0); // initially invisible
+                        FrameLayout.LayoutParams.MATCH_PARENT,
+                        FrameLayout.LayoutParams.MATCH_PARENT));
+                highlightOverlay.setBackgroundResource(0);
                 highlightOverlay.setTag("highlight");
 
                 tileContainer.addView(highlightOverlay);
@@ -163,6 +201,10 @@ public class MainActivity extends AppCompatActivity {
                         int rowDiff = toRow - selectedRow;
                         int colDiff = toCol - selectedCol;
 
+                        ImageView capturedPiece = null;
+                        int scoreGained = 0;
+                        String solutionText = "";
+
                         if (Math.abs(rowDiff) == 2 && Math.abs(colDiff) == 2) {
                             int midRow = (selectedRow + toRow) / 2;
                             int midCol = (selectedCol + toCol) / 2;
@@ -187,17 +229,23 @@ public class MainActivity extends AppCompatActivity {
 
                                     ImageView tileImage = (ImageView) midCell.getChildAt(0);
                                     int opId = (Integer) tileImage.getTag(R.id.tile_type_id);
-                                    int score = evaluateOperation(a, b, opId);
+
+                                    String operatorSymbol = getOperatorSymbol(opId);
+
+                                    scoreGained = evaluateOperation(a, b, opId);
+
+                                    solutionText = a + " " + operatorSymbol + " " + b + " = " + scoreGained;
 
                                     if (currentColor.equals("red")) {
-                                        player1Score += score;
+                                        player1Score += scoreGained;
                                         player1ScoreTextView.setText(player1Name + ": " + player1Score);
                                     } else {
-                                        player2Score += score;
+                                        player2Score += scoreGained;
                                         player2ScoreTextView.setText(player2Name + ": " + player2Score);
                                     }
 
-                                    midCell.removeView(midPiece); // capture opponent
+                                    midCell.removeView(midPiece);
+                                    capturedPiece = midPiece;
                                 }
                             }
                         }
@@ -205,13 +253,15 @@ public class MainActivity extends AppCompatActivity {
                         boolean isRegularDiagonal = isValidDiagonalMove(selectedRow, selectedCol, toRow, toCol);
                         boolean isCapture = Math.abs(rowDiff) == 2 && Math.abs(colDiff) == 2;
 
-                        // Allow forward-only for regular moves
                         boolean isForward = ("red".equals(currentTurn) && toRow > selectedRow) ||
                                 ("blue".equals(currentTurn) && toRow < selectedRow);
 
                         if ((isRegularDiagonal && isForward) || isCapture) {
                             selectedPieceParent.removeView(selectedPiece);
                             targetCell.addView(selectedPiece);
+
+                            int oldSelectedRow = selectedRow;
+                            int oldSelectedCol = selectedCol;
 
                             selectedPiece.setTag(R.id.piece_row_tag, toRow);
                             selectedPiece.setTag(R.id.piece_col_tag, toCol);
@@ -222,9 +272,25 @@ public class MainActivity extends AppCompatActivity {
 
                             clearHighlights();
 
+                            if (soundPool != null && moveSoundId != 0) {
+                                soundPool.play(moveSoundId, 1f, 1f, 0, 0, 1f);
+                            }
+
+                            if (isCapture && !solutionText.isEmpty()) {
+                                solutionTextView.setText("Last Score: " + solutionText);
+                            } else {
+                                solutionTextView.setText("");
+                            }
+
+                            StrategyType strategy = analyzeMoveStrategy(selectedPiece, toRow, toCol,
+                                    oldSelectedRow, oldSelectedCol,
+                                    isCapture, capturedPiece, scoreGained);
+
+                            showStrategyPopup(strategy);
+
                             if (isCapture && hasMoreCaptures(selectedPiece, toRow, toCol)) {
                                 selectedPiece.setAlpha(0.5f);
-                                highlightValidCaptures(toRow, toCol); // Only highlight captures now
+                                highlightValidCaptures(toRow, toCol);
                             } else {
                                 selectedPiece.setAlpha(1.0f);
                                 selectedPiece = null;
@@ -238,8 +304,7 @@ public class MainActivity extends AppCompatActivity {
                     }
                 });
 
-                // Important: Add tile image last so it's always behind the piece
-                tileContainer.addView(tile, 0); // Add at index 0 (bottom)
+                tileContainer.addView(tile, 0);
 
                 gridBoard.addView(tileContainer);
 
@@ -249,39 +314,33 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
-
-        // Fixed piece positions (row, col are 0-based)
         int[][] redPositions = {
-            {0, 1}, {0, 3}, {0, 5}, {0, 7},
-            {1, 0}, {1, 2}, {1, 4}, {1, 6},
-            {2, 1}, {2, 3}, {2, 5}, {2, 7}
+                {0, 1}, {0, 3}, {0, 5}, {0, 7},
+                {1, 0}, {1, 2}, {1, 4}, {1, 6},
+                {2, 1}, {2, 3}, {2, 5}, {2, 7}
         };
 
         int[][] bluePositions = {
-            {5, 0}, {5, 2}, {5, 4}, {5, 6},
-            {6, 1}, {6, 3}, {6, 5}, {6, 7},
-            {7, 0}, {7, 2}, {7, 4}, {7, 6}
+                {5, 0}, {5, 2}, {5, 4}, {5, 6},
+                {6, 1}, {6, 3}, {6, 5}, {6, 7},
+                {7, 0}, {7, 2}, {7, 4}, {7, 6}
         };
 
-        // Generate red pieces: 1-9 + 3 random repeats
         List<Integer> redPieces = new ArrayList<>();
         for (int i = 1; i <= 9; i++) redPieces.add(i);
         for (int i = 0; i < 3; i++) redPieces.add(redPieces.get(random.nextInt(9)));
         Collections.shuffle(redPieces);
 
-        // Generate blue pieces: 1-9 + 3 random repeats
         List<Integer> bluePieces = new ArrayList<>();
         for (int i = 1; i <= 9; i++) bluePieces.add(i);
         for (int i = 0; i < 3; i++) bluePieces.add(bluePieces.get(random.nextInt(9)));
         Collections.shuffle(bluePieces);
 
-        // Place red pieces
         for (int i = 0; i < 12; i++) {
             int[] pos = redPositions[i];
             addPieceToTile(pos[0], pos[1], "red_piece_" + redPieces.get(i), tileSizePx);
         }
 
-        // Place blue pieces
         for (int i = 0; i < 12; i++) {
             int[] pos = bluePositions[i];
             addPieceToTile(pos[0], pos[1], "blue_piece_" + bluePieces.get(i), tileSizePx);
@@ -289,7 +348,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private boolean isWhiteTile(ImageView tile) {
-        int id = (Integer) tile.getTag(R.id.tile_type_id); // fallback if we store tag
+        int id = (Integer) tile.getTag(R.id.tile_type_id);
         for (int op : operatorTiles) {
             if (tile.getDrawable() != null && tile.getDrawable().getConstantState() != null &&
                     getResources().getDrawable(op).getConstantState().equals(tile.getDrawable().getConstantState())) {
@@ -348,7 +407,6 @@ public class MainActivity extends AppCompatActivity {
 
         String color = (String) selectedPiece.getTag(R.id.piece_color_tag);
 
-        // All possible diagonal directions (for capture)
         int[][] allDirections = {{1, 1}, {1, -1}, {-1, 1}, {-1, -1}};
 
         for (int[] dir : allDirections) {
@@ -356,16 +414,14 @@ public class MainActivity extends AppCompatActivity {
             int moveRow = row + dRow;
             int moveCol = col + dCol;
 
-            // Regular move — only forward
             boolean isForward = ("red".equals(color) && dRow > 0) || ("blue".equals(color) && dRow < 0);
             if (isForward && isInBounds(moveRow, moveCol)) {
                 FrameLayout target = tileContainers[moveRow][moveCol];
                 if (target.getChildCount() <= 2) {
-                    highlightTile(target, false); // yellow
+                    highlightTile(target, false);
                 }
             }
 
-            // Capture move — all directions
             int midRow = row + dRow;
             int midCol = col + dCol;
             int jumpRow = row + 2 * dRow;
@@ -388,10 +444,9 @@ public class MainActivity extends AppCompatActivity {
                 boolean jumpEmpty = jumpCell.getChildCount() <= 2;
 
                 if (isOpponent && jumpEmpty) {
-                    highlightTile(jumpCell, true); // green
-                    highlightTile(midCell, true);  // green (captured piece)
+                    highlightTile(jumpCell, true);
+                    highlightTile(midCell, true);
 
-                    // Display operator icon like exponent
                     ImageView midTileImage = (ImageView) midCell.getChildAt(0);
                     int operatorResId = (Integer) midTileImage.getTag(R.id.tile_type_id);
 
@@ -463,15 +518,13 @@ public class MainActivity extends AppCompatActivity {
                         View child = cell.getChildAt(i);
                         Object tag = child.getTag();
 
-                        // Clear highlight overlay
                         if ("highlight".equals(tag)) {
                             child.setBackgroundResource(0);
                         }
 
-                        // Remove temporary operator icons
                         if ("temp_operator".equals(tag)) {
                             cell.removeView(child);
-                            i--; // Adjust index after removal
+                            i--;
                         }
                     }
                 }
@@ -493,6 +546,14 @@ public class MainActivity extends AppCompatActivity {
         return 0;
     }
 
+    private String getOperatorSymbol(int operatorResId) {
+        if (operatorResId == R.drawable.tile_add) return "+";
+        if (operatorResId == R.drawable.tile_minus) return "-";
+        if (operatorResId == R.drawable.tile_multiply) return "x";
+        if (operatorResId == R.drawable.tile_divide) return "/";
+        return "?";
+    }
+
     private boolean isInBounds(int row, int col) {
         return row >= 0 && row < 8 && col >= 0 && col < 8;
     }
@@ -502,7 +563,6 @@ public class MainActivity extends AppCompatActivity {
             View child = tile.getChildAt(i);
             if ("highlight".equals(child.getTag())) {
                 child.setBackgroundResource(isCapture ? R.drawable.tile_highlight_green : R.drawable.tile_highlight_yellow);
-                break;
             }
         }
     }
@@ -546,5 +606,69 @@ public class MainActivity extends AppCompatActivity {
             return true;
         }
         return row > 0 && operatorIndices[row - 1][col] == operatorIndex;
+    }
+
+    private StrategyType analyzeMoveStrategy(ImageView movedPiece, int newRow, int newCol,
+                                             int oldRow, int oldCol,
+                                             boolean isCapture, ImageView capturedPiece, int scoreGained) {
+
+        String movedPieceColor = (String) movedPiece.getTag(R.id.piece_color_tag);
+
+        if ((movedPieceColor.equals("red") && newRow == 7) ||
+                (movedPieceColor.equals("blue") && newRow == 0)) {
+            return StrategyType.KING_BOUND;
+        }
+
+        boolean isNewPositionCentral = (newRow >= 2 && newRow <= 5 && newCol >= 2 && newCol <= 5);
+        boolean wasOldPositionNonCentral = !(oldRow >= 2 && oldRow <= 5 && oldCol >= 2 && oldCol <= 5);
+        if (isNewPositionCentral && wasOldPositionNonCentral) {
+            return StrategyType.CENTER_CONTROL;
+        }
+
+        if (isCapture && scoreGained > 20) {
+            return StrategyType.HIGH_VALUE_CAPTURE;
+        }
+
+        if (isCapture) {
+            if ((movedPieceColor.equals("red") && player1Score > player2Score) ||
+                    (movedPieceColor.equals("blue") && player2Score > player1Score)) {
+                return StrategyType.ADVANTAGEOUS_TRADE;
+            }
+        }
+
+        return StrategyType.NONE;
+    }
+
+    private void showStrategyPopup(StrategyType strategy) {
+        String message = "";
+        switch (strategy) {
+            case KING_BOUND:
+                message = "King Bound!";
+                break;
+            case CENTER_CONTROL:
+                message = "Center Control!";
+                break;
+            case HIGH_VALUE_CAPTURE:
+                message = "High Value Capture!";
+                break;
+            case ADVANTAGEOUS_TRADE:
+                message = "Advantageous Trade!";
+                break;
+            case NONE:
+                return;
+        }
+
+        if (!message.isEmpty()) {
+            Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (soundPool != null) {
+            soundPool.release();
+            soundPool = null;
+        }
     }
 }

@@ -11,8 +11,6 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
 
-        <!-- Score Display -->
-
         <ImageButton
             android:id="@+id/homeButton"
             android:layout_width="wrap_content"
@@ -59,7 +57,6 @@
                 android:textStyle="bold" />
         </LinearLayout>
 
-        <!-- Turn Indicator -->
         <TextView
             android:id="@+id/turnIndicator"
             android:layout_width="wrap_content"
@@ -70,7 +67,23 @@
             android:textColor="@color/white"
             android:text="Player 1's Turn" />
 
-        <!-- Game Board -->
+        <TextView
+            android:id="@+id/solutionTextView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="16dp" android:text=""
+            android:textSize="20sp"
+            android:textColor="@android:color/holo_green_light"
+            android:textStyle="bold"
+            android:fontFamily="@font/alfa_slab_one"
+            android:shadowColor="@color/black"
+            android:shadowDx="1"
+            android:shadowDy="1"
+            android:shadowRadius="5"/>
+
+
+
         <GridLayout
             android:id="@+id/gridBoard"
             android:layout_width="wrap_content"
@@ -79,7 +92,8 @@
             android:layout_marginTop="16dp"
             android:columnCount="10"
             android:rowCount="10"
-            android:orientation="horizontal" />
+            android:orientation="horizontal" >
+        </GridLayout>
 
     </LinearLayout>
 </ScrollView>
