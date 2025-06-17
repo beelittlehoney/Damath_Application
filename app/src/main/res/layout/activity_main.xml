@@ -82,8 +82,6 @@
             android:shadowDy="1"
             android:shadowRadius="5"/>
 
-
-
         <GridLayout
             android:id="@+id/gridBoard"
             android:layout_width="wrap_content"
@@ -94,6 +92,74 @@
             android:rowCount="10"
             android:orientation="horizontal" >
         </GridLayout>
+
+        <LinearLayout
+            android:id="@+id/moveHistoryTable"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="16dp"
+            android:padding="8dp"
+            android:background="#33000000">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center_horizontal">
+
+                <TextView
+                    android:id="@+id/player1MoveLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Player 1 Moves"
+                    android:textColor="@android:color/holo_red_light"
+                    android:textStyle="bold" />
+
+                <ScrollView
+                    android:id="@+id/moveHistoryScroll1"
+                    android:layout_width="wrap_content"
+                    android:layout_height="100dp"
+                    android:scrollbars="vertical">
+
+                    <LinearLayout
+                        android:id="@+id/moveHistoryContent1"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical" />
+                </ScrollView>
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center_horizontal">
+
+                <TextView
+                    android:id="@+id/player2MoveLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Player 2 Moves"
+                    android:textColor="@android:color/holo_blue_bright"
+                    android:textStyle="bold" />
+
+                <ScrollView
+                    android:id="@+id/moveHistoryScroll2"
+                    android:layout_width="wrap_content"
+                    android:layout_height="100dp"
+                    android:scrollbars="vertical">
+
+                    <LinearLayout
+                        android:id="@+id/moveHistoryContent2"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical" />
+                </ScrollView>
+            </LinearLayout>
+        </LinearLayout>
 
     </LinearLayout>
 </ScrollView>

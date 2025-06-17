@@ -1,70 +1,46 @@
 package com.example.damathapplication;
 
 import android.content.Intent;
+import android.media.AudioAttributes;
+import android.media.SoundPool;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
 import android.util.TypedValue;
+import android.view.Gravity;
 import android.view.View;
-import android.widget.FrameLayout;
-import android.widget.GridLayout;
-import android.widget.ImageButton;
-import android.widget.ImageView;
-import android.widget.TextView;
-import android.widget.Toast;
+import android.widget.*;
 import androidx.appcompat.app.AppCompatActivity;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
-import java.util.Random;
-import android.media.SoundPool;
-import android.media.AudioAttributes;
-
+import java.util.*;
 
 public class MainActivity extends AppCompatActivity {
-    private TextView player1ScoreTextView, player2ScoreTextView, turnIndicatorTextView;
-    private TextView solutionTextView;
+    private TextView player1ScoreTextView, player2ScoreTextView, turnIndicatorTextView, solutionTextView;
     private FrameLayout[][] tileContainers = new FrameLayout[8][8];
-    private String currentTurn; // No initial value, will be shuffled
+    private String currentTurn;
     private String player1Name = "Player 1";
     private String player2Name = "Player 2";
-    private int player1Score = 0;
-    private int player2Score = 0;
+    private int player1Score = 0, player2Score = 0;
     private FrameLayout selectedPieceParent = null;
     private ImageView selectedPiece = null;
-    private ImageButton homeButton;
     private GridLayout gridBoard;
-    private int selectedRow = -1;
-    private int selectedCol = -1;
-
-    public enum StrategyType {
-        NONE,
-        KING_BOUND,
-        CENTER_CONTROL,
-        HIGH_VALUE_CAPTURE,
-        ADVANTAGEOUS_TRADE
-    }
+    private int selectedRow = -1, selectedCol = -1;
+    private SoundPool soundPool;
+    private int moveSoundId;
+    private LinearLayout moveHistoryTable;
+    private ScrollView moveHistoryScroll1, moveHistoryScroll2;
+    private LinearLayout moveHistoryContent1, moveHistoryContent2;
 
     private final int[] numberTiles = {
-            R.drawable.tile_number_1,
-            R.drawable.tile_number_2,
-            R.drawable.tile_number_3,
-            R.drawable.tile_number_4,
-            R.drawable.tile_number_5,
-            R.drawable.tile_number_6,
-            R.drawable.tile_number_7,
-            R.drawable.tile_number_8
+            R.drawable.tile_number_1, R.drawable.tile_number_2, R.drawable.tile_number_3, R.drawable.tile_number_4,
+            R.drawable.tile_number_5, R.drawable.tile_number_6, R.drawable.tile_number_7, R.drawable.tile_number_8
     };
-    SoundPool soundPool;
-    int moveSoundId;
 
     private final int[] operatorTiles = {
-            R.drawable.tile_add,
-            R.drawable.tile_minus,
-            R.drawable.tile_multiply,
-            R.drawable.tile_divide
+            R.drawable.tile_add, R.drawable.tile_minus, R.drawable.tile_multiply, R.drawable.tile_divide
     };
+
+    private enum StrategyType {
+        NONE, KING_BOUND, CENTER_CONTROL, HIGH_VALUE_CAPTURE, ADVANTAGEOUS_TRADE
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -72,16 +48,60 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         initializeViews();
+        setupSound();
         setupPlayerInfo();
         setupGameBoard();
+        setupHomeButton();
+        setupMoveHistoryUI();
+    }
 
-        homeButton = findViewById(R.id.homeButton);
-        homeButton.setOnClickListener(view -> {
-            Intent homeIntent = new Intent(MainActivity.this, HomePageActivity.class);
-            startActivity(homeIntent);
-            finish();
-        });
+    private void initializeViews() {
+        player1ScoreTextView = findViewById(R.id.player1Score);
+        player2ScoreTextView = findViewById(R.id.player2Score);
+        turnIndicatorTextView = findViewById(R.id.turnIndicator);
+        solutionTextView = findViewById(R.id.solutionTextView);
+        gridBoard = findViewById(R.id.gridBoard);
+        moveHistoryTable = findViewById(R.id.moveHistoryTable);
+        moveHistoryScroll1 = findViewById(R.id.moveHistoryScroll1);
+        moveHistoryScroll2 = findViewById(R.id.moveHistoryScroll2);
+        moveHistoryContent1 = findViewById(R.id.moveHistoryContent1);
+        moveHistoryContent2 = findViewById(R.id.moveHistoryContent2);
+    }
 
+    private void setupMoveHistoryUI() {
+        moveHistoryContent1.removeAllViews();
+        moveHistoryContent2.removeAllViews();
+    }
+
+    private void addMoveToHistory(String color, int attackerResId, int capturedResId, int operatorResId) {
+        ImageView attackerView = new ImageView(this);
+        attackerView.setImageResource(attackerResId);
+        attackerView.setLayoutParams(new LinearLayout.LayoutParams(80, 80));
+
+        ImageView operatorView = new ImageView(this);
+        operatorView.setImageResource(operatorResId);
+        operatorView.setLayoutParams(new LinearLayout.LayoutParams(80, 80));
+
+        ImageView capturedView = new ImageView(this);
+        capturedView.setImageResource(capturedResId);
+        capturedView.setLayoutParams(new LinearLayout.LayoutParams(80, 80));
+
+        LinearLayout container = new LinearLayout(this);
+        container.setOrientation(LinearLayout.HORIZONTAL);
+        container.setGravity(android.view.Gravity.CENTER_VERTICAL);
+
+        container.addView(attackerView);
+        container.addView(operatorView);
+        container.addView(capturedView);
+
+        if ("red".equals(color)) {
+            moveHistoryContent1.addView(container, 0);
+        } else {
+            moveHistoryContent2.addView(container, 0);
+        }
+    }
+
+    private void setupSound() {
         AudioAttributes audioAttributes = new AudioAttributes.Builder()
                 .setUsage(AudioAttributes.USAGE_GAME)
                 .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
@@ -95,40 +115,24 @@ public class MainActivity extends AppCompatActivity {
         moveSoundId = soundPool.load(this, R.raw.soundeffects, 1);
     }
 
-    private void initializeViews() {
-        player1ScoreTextView = findViewById(R.id.player1Score);
-        player2ScoreTextView = findViewById(R.id.player2Score);
-        turnIndicatorTextView = findViewById(R.id.turnIndicator);
-        solutionTextView = findViewById(R.id.solutionTextView);
-        gridBoard = findViewById(R.id.gridBoard);
-        homeButton = findViewById(R.id.homeButton);
+    private void setupHomeButton() {
+        ImageButton homeButton = findViewById(R.id.homeButton);
+        homeButton.setOnClickListener(view -> {
+            startActivity(new Intent(MainActivity.this, HomePageActivity.class));
+            finish();
+        });
     }
 
-    public void setupPlayerInfo() {
+    private void setupPlayerInfo() {
         Intent intent = getIntent();
-        player1Name = intent.getStringExtra("player1Name");
-        player2Name = intent.getStringExtra("player2Name");
-
-        if (Objects.equals(player1Name, "")) {
-            player1Name = "Player 1";
-        }
-
-        if (Objects.equals(player2Name, "")) {
-            player2Name = "Player 2";
-        }
+        player1Name = Optional.ofNullable(intent.getStringExtra("player1Name")).filter(s -> !s.isEmpty()).orElse("Player 1");
+        player2Name = Optional.ofNullable(intent.getStringExtra("player2Name")).filter(s -> !s.isEmpty()).orElse("Player 2");
 
         player1ScoreTextView.setText(player1Name + ": 0");
         player2ScoreTextView.setText(player2Name + ": 0");
 
-        // Randomize starting player
-        Random random = new Random();
-        if (random.nextBoolean()) {
-            currentTurn = "red";
-            turnIndicatorTextView.setText(player1Name + "'s turn");
-        } else {
-            currentTurn = "blue";
-            turnIndicatorTextView.setText(player2Name + "'s turn");
-        }
+        currentTurn = new Random().nextBoolean() ? "red" : "blue";
+        turnIndicatorTextView.setText((currentTurn.equals("red") ? player1Name : player2Name) + "'s turn");
         solutionTextView.setText("");
     }
 
@@ -233,7 +237,6 @@ public class MainActivity extends AppCompatActivity {
                                     String operatorSymbol = getOperatorSymbol(opId);
 
                                     scoreGained = evaluateOperation(a, b, opId);
-
                                     solutionText = a + " " + operatorSymbol + " " + b + " = " + scoreGained;
 
                                     if (currentColor.equals("red")) {
@@ -243,6 +246,11 @@ public class MainActivity extends AppCompatActivity {
                                         player2Score += scoreGained;
                                         player2ScoreTextView.setText(player2Name + ": " + player2Score);
                                     }
+
+                                    addMoveToHistory(currentColor,
+                                            (Integer) selectedPiece.getTag(R.id.tile_type_id),
+                                            (Integer) midPiece.getTag(R.id.tile_type_id),
+                                            opId);
 
                                     midCell.removeView(midPiece);
                                     capturedPiece = midPiece;
@@ -278,6 +286,11 @@ public class MainActivity extends AppCompatActivity {
 
                             if (isCapture && !solutionText.isEmpty()) {
                                 solutionTextView.setText("Last Score: " + solutionText);
+
+                                int attackerResId = (Integer) selectedPiece.getTag(R.id.tile_type_id);
+                                int operatorResId = (Integer) ((ImageView) tileContainers[(selectedRow + toRow) / 2][(selectedCol + toCol) / 2]
+                                        .getChildAt(0)).getTag(R.id.tile_type_id);
+                                int capturedResId = (Integer) capturedPiece.getTag(R.id.tile_type_id);
                             } else {
                                 solutionTextView.setText("");
                             }
