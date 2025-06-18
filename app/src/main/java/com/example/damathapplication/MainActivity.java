@@ -31,8 +31,6 @@ public class MainActivity extends AppCompatActivity {
     private int selectedRow = -1, selectedCol = -1;
     private SoundPool soundPool;
     private int moveSoundId;
-    private LinearLayout moveHistoryTable;
-    private ScrollView moveHistoryScroll1, moveHistoryScroll2;
     private LinearLayout moveHistoryContent1, moveHistoryContent2;
     private final int[] numberTiles = {
             R.drawable.tile_number_1, R.drawable.tile_number_2, R.drawable.tile_number_3, R.drawable.tile_number_4,
@@ -74,9 +72,6 @@ public class MainActivity extends AppCompatActivity {
         turnIndicatorTextView = findViewById(R.id.turnIndicator);
         solutionTextView = findViewById(R.id.solutionTextView);
         gridBoard = findViewById(R.id.gridBoard);
-        moveHistoryTable = findViewById(R.id.moveHistoryTable);
-        moveHistoryScroll1 = findViewById(R.id.moveHistoryScroll1);
-        moveHistoryScroll2 = findViewById(R.id.moveHistoryScroll2);
         moveHistoryContent1 = findViewById(R.id.moveHistoryContent1);
         moveHistoryContent2 = findViewById(R.id.moveHistoryContent2);
     }
@@ -87,6 +82,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void addMoveToHistory(String color, int attackerResId, int capturedResId, int operatorResId) {
+        // Get the values from the resource IDs
+        int attackerValue = extractValueFromResourceId(attackerResId);
+        int capturedValue = extractValueFromResourceId(capturedResId);
+        int result = evaluateOperation(attackerValue, capturedValue, operatorResId);
+
+        // Create image views for the move components
         ImageView attackerView = new ImageView(this);
         attackerView.setImageResource(attackerResId);
         attackerView.setLayoutParams(new LinearLayout.LayoutParams(80, 80));
@@ -99,19 +100,44 @@ public class MainActivity extends AppCompatActivity {
         capturedView.setImageResource(capturedResId);
         capturedView.setLayoutParams(new LinearLayout.LayoutParams(80, 80));
 
+        // Create equals sign view
+        TextView equalsView = new TextView(this);
+        equalsView.setText("=");
+        equalsView.setTextSize(20);
+        equalsView.setGravity(Gravity.CENTER);
+        equalsView.setLayoutParams(new LinearLayout.LayoutParams(40, 80));
+
+        // Create result view - FIXED TO SHOW FULL RESULT
+        TextView resultView = new TextView(this);
+        resultView.setText(String.valueOf(result));
+        resultView.setTextSize(20);
+        resultView.setGravity(Gravity.CENTER);
+        resultView.setLayoutParams(new LinearLayout.LayoutParams(80, 80)); // Increased width
+
+        // Create container for the move
         LinearLayout container = new LinearLayout(this);
         container.setOrientation(LinearLayout.HORIZONTAL);
-        container.setGravity(android.view.Gravity.CENTER_VERTICAL);
+        container.setGravity(Gravity.CENTER_VERTICAL);
 
+        // Add views to container
         container.addView(attackerView);
         container.addView(operatorView);
         container.addView(capturedView);
+        container.addView(equalsView);
+        container.addView(resultView);
 
+        // Add to the appropriate player's history
         if ("red".equals(color)) {
             moveHistoryContent1.addView(container, 0);
         } else {
             moveHistoryContent2.addView(container, 0);
         }
+    }
+
+    // Helper method to extract value from resource ID
+    private int extractValueFromResourceId(int resId) {
+        String name = getResources().getResourceEntryName(resId);
+        return Integer.parseInt(name.replaceAll("[^0-9]", ""));
     }
 
     private void setupSound() {
@@ -131,8 +157,38 @@ public class MainActivity extends AppCompatActivity {
     private void setupHomeButton() {
         ImageButton homeButton = findViewById(R.id.homeButton);
         homeButton.setOnClickListener(view -> {
-            startActivity(new Intent(MainActivity.this, HomePageActivity.class));
-            finish();
+            // Create a custom dialog
+            AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            builder.setTitle("Game Menu");
+
+            // Inflate the custom layout
+            View dialogView = getLayoutInflater().inflate(R.layout.dialog_game_menu, null);
+            builder.setView(dialogView);
+
+            // Initialize buttons from the custom layout
+            Button btnMainMenu = dialogView.findViewById(R.id.btnMainMenu);
+            Button btnPlayAgain = dialogView.findViewById(R.id.btnPlayAgain);
+            Button btnCancel = dialogView.findViewById(R.id.btnCancel);
+
+            // Create and show the dialog
+            AlertDialog dialog = builder.create();
+            dialog.show();
+
+            // Set click listeners for the buttons
+            btnMainMenu.setOnClickListener(v -> {
+                dialog.dismiss();
+                startActivity(new Intent(MainActivity.this, HomePageActivity.class));
+                finish();
+            });
+
+            btnPlayAgain.setOnClickListener(v -> {
+                dialog.dismiss();
+                recreate(); // Restart the current activity
+            });
+
+            btnCancel.setOnClickListener(v -> {
+                dialog.dismiss();
+            });
         });
     }
 
@@ -791,7 +847,7 @@ public class MainActivity extends AppCompatActivity {
         startOperatorRain();
 
         // Play win music
-        winMusicPlayer = MediaPlayer.create(this, R.raw.backgroundmusic); // use your existing bg music file
+        winMusicPlayer = MediaPlayer.create(this, R.raw.backgroundmusic);
         winMusicPlayer.setLooping(true);
         winMusicPlayer.start();
 
@@ -800,23 +856,24 @@ public class MainActivity extends AppCompatActivity {
                 .setMessage(winnerName + " wins the game!")
                 .setCancelable(false)
                 .setPositiveButton("Restart", (dialog, which) -> {
-                    stopOperatorRain(); // stops the falling animation
+                    stopOperatorRain();
                     if (winMusicPlayer != null) {
                         winMusicPlayer.stop();
                         winMusicPlayer.release();
                         winMusicPlayer = null;
                     }
-
                     new Handler().postDelayed(() -> recreate(), 200);
                 })
-                .setNegativeButton("Exit", (dialog, which) -> {
-                    stopOperatorRain(); // stops the falling animation
+                .setNegativeButton("Main Menu", (dialog, which) -> {
+                    stopOperatorRain();
                     if (winMusicPlayer != null) {
                         winMusicPlayer.stop();
                         winMusicPlayer.release();
                         winMusicPlayer = null;
                     }
-                    finishAffinity(); // exits the app completely
+                    // Go back to HomePageActivity instead of exiting
+                    startActivity(new Intent(MainActivity.this, HomePageActivity.class));
+                    finish();
                 })
                 .show();
     }
