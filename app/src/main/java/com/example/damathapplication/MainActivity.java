@@ -278,7 +278,20 @@ public class MainActivity extends AppCompatActivity {
                         int scoreGained = 0;
                         String solutionText = "";
 
-                        if (Math.abs(rowDiff) == 2 && Math.abs(colDiff) == 2) {
+                        boolean isCapture = Math.abs(rowDiff) == 2 && Math.abs(colDiff) == 2;
+                        boolean isPromoted = selectedPiece.getTag(R.id.promoted_tag) != null;
+                        boolean isForward = ("red".equals(currentTurn) && toRow > selectedRow) ||
+                                ("blue".equals(currentTurn) && toRow < selectedRow);
+
+                        if (isCapture) {
+                            if (!isPromoted && !isForward) {
+                                clearHighlights();
+                                selectedPiece.setAlpha(1.0f);
+                                selectedPiece = null;
+                                selectedPieceParent = null;
+                                return;
+                            }
+
                             int midRow = (selectedRow + toRow) / 2;
                             int midCol = (selectedCol + toCol) / 2;
                             FrameLayout midCell = tileContainers[midRow][midCol];
@@ -318,7 +331,6 @@ public class MainActivity extends AppCompatActivity {
 
                                     checkWinCondition();
 
-                                    // Check for win
                                     String opponentColor = currentColor.equals("red") ? "blue" : "red";
                                     int opponentPieces = countPieces(opponentColor);
                                     if (opponentPieces == 0) {
@@ -339,12 +351,8 @@ public class MainActivity extends AppCompatActivity {
                         }
 
                         boolean isRegularDiagonal = isValidDiagonalMove(selectedRow, selectedCol, toRow, toCol);
-                        boolean isCapture = Math.abs(rowDiff) == 2 && Math.abs(colDiff) == 2;
 
-                        boolean isForward = ("red".equals(currentTurn) && toRow > selectedRow) ||
-                                ("blue".equals(currentTurn) && toRow < selectedRow);
-
-                        if ((isRegularDiagonal && isForward) || isCapture) {
+                        if ((isRegularDiagonal && (isPromoted || isForward)) || isCapture) {
                             selectedPieceParent.removeView(selectedPiece);
                             targetCell.addView(selectedPiece);
 
@@ -358,6 +366,37 @@ public class MainActivity extends AppCompatActivity {
                             selectedCol = toCol;
                             selectedPieceParent = targetCell;
 
+                            // Promote if reaches end
+                            if (("red".equals(currentTurn) && toRow == 7) ||
+                                    ("blue".equals(currentTurn) && toRow == 0)) {
+
+                                if (selectedPiece.getTag(R.id.promoted_tag) == null) {
+                                    selectedPiece.setTag(R.id.promoted_tag, true);
+
+                                    ImageView crown = new ImageView(this);
+                                    crown.setImageResource(R.drawable.icon_crown);
+                                    FrameLayout.LayoutParams paramsCrown = new FrameLayout.LayoutParams(
+                                            FrameLayout.LayoutParams.WRAP_CONTENT,
+                                            FrameLayout.LayoutParams.WRAP_CONTENT);
+                                    paramsCrown.gravity = Gravity.TOP | Gravity.END;
+                                    paramsCrown.setMargins(0, 4, 4, 0);
+                                    crown.setLayoutParams(paramsCrown);
+                                    crown.setTag("crown");
+
+                                    boolean hasCrown = false;
+                                    for (int i = 0; i < selectedPieceParent.getChildCount(); i++) {
+                                        View child = selectedPieceParent.getChildAt(i);
+                                        if ("crown".equals(child.getTag())) {
+                                            hasCrown = true;
+                                            break;
+                                        }
+                                    }
+                                    if (!hasCrown) {
+                                        selectedPieceParent.addView(crown);
+                                    }
+                                }
+                            }
+
                             clearHighlights();
 
                             if (soundPool != null && moveSoundId != 0) {
@@ -366,11 +405,6 @@ public class MainActivity extends AppCompatActivity {
 
                             if (isCapture && !solutionText.isEmpty()) {
                                 solutionTextView.setText("Last Score: " + solutionText);
-
-                                int attackerResId = (Integer) selectedPiece.getTag(R.id.tile_type_id);
-                                int operatorResId = (Integer) ((ImageView) tileContainers[(selectedRow + toRow) / 2][(selectedCol + toCol) / 2]
-                                        .getChildAt(0)).getTag(R.id.tile_type_id);
-                                int capturedResId = (Integer) capturedPiece.getTag(R.id.tile_type_id);
                             } else {
                                 solutionTextView.setText("");
                             }
@@ -380,7 +414,6 @@ public class MainActivity extends AppCompatActivity {
                                     isCapture, capturedPiece, scoreGained);
 
                             showStrategyPopup(strategy);
-
                             checkWinCondition();
 
                             if (isCapture && hasMoreCaptures(selectedPiece, toRow, toCol)) {
@@ -400,7 +433,6 @@ public class MainActivity extends AppCompatActivity {
                 });
 
                 tileContainer.addView(tile, 0);
-
                 gridBoard.addView(tileContainer);
 
                 if (row > 0 && row < 9 && col > 0 && col < 9) {
@@ -490,18 +522,33 @@ public class MainActivity extends AppCompatActivity {
         clearHighlights();
 
         String color = (String) selectedPiece.getTag(R.id.piece_color_tag);
+        boolean isPromoted = selectedPiece.getTag(R.id.promoted_tag) != null;
 
-        int[][] allDirections = {{1, 1}, {1, -1}, {-1, 1}, {-1, -1}};
+        int[][] directions;
+        if (isPromoted) {
+            directions = new int[][]{{1, 1}, {1, -1}, {-1, 1}, {-1, -1}};
+        } else if ("red".equals(color)) {
+            directions = new int[][]{{1, 1}, {1, -1}};
+        } else {
+            directions = new int[][]{{-1, 1}, {-1, -1}};
+        }
 
-        for (int[] dir : allDirections) {
+        for (int[] dir : directions) {
             int dRow = dir[0], dCol = dir[1];
             int moveRow = row + dRow;
             int moveCol = col + dCol;
 
-            boolean isForward = ("red".equals(color) && dRow > 0) || ("blue".equals(color) && dRow < 0);
-            if (isForward && isInBounds(moveRow, moveCol)) {
+            if (isInBounds(moveRow, moveCol)) {
                 FrameLayout target = tileContainers[moveRow][moveCol];
-                if (target.getChildCount() <= 2) {
+                boolean tileFree = true;
+                for (int i = 0; i < target.getChildCount(); i++) {
+                    View child = target.getChildAt(i);
+                    if (child instanceof ImageView && child.getTag(R.id.piece_color_tag) != null) {
+                        tileFree = false;
+                        break;
+                    }
+                }
+                if (tileFree) {
                     highlightTile(target, false);
                 }
             }
@@ -525,7 +572,14 @@ public class MainActivity extends AppCompatActivity {
                 }
 
                 boolean isOpponent = midPiece != null && !((String) midPiece.getTag(R.id.piece_color_tag)).equals(color);
-                boolean jumpEmpty = jumpCell.getChildCount() <= 2;
+                boolean jumpEmpty = true;
+                for (int i = 0; i < jumpCell.getChildCount(); i++) {
+                    View child = jumpCell.getChildAt(i);
+                    if (child instanceof ImageView && child.getTag(R.id.piece_color_tag) != null) {
+                        jumpEmpty = false;
+                        break;
+                    }
+                }
 
                 if (isOpponent && jumpEmpty) {
                     highlightTile(jumpCell, true);
@@ -562,7 +616,16 @@ public class MainActivity extends AppCompatActivity {
 
     private void highlightValidCaptures(int row, int col) {
         String color = (String) selectedPiece.getTag(R.id.piece_color_tag);
-        int[][] directions = {{1,1},{1,-1},{-1,1},{-1,-1}};
+        boolean isPromoted = selectedPiece.getTag(R.id.promoted_tag) != null;
+
+        int[][] directions;
+        if (isPromoted) {
+            directions = new int[][]{{1, 1}, {1, -1}, {-1, 1}, {-1, -1}}; // all directions
+        } else if ("red".equals(color)) {
+            directions = new int[][]{{1, 1}, {1, -1}}; // forward only
+        } else {
+            directions = new int[][]{{-1, 1}, {-1, -1}}; // forward only
+        }
 
         for (int[] dir : directions) {
             int midRow = row + dir[0];
@@ -583,7 +646,8 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
 
-                boolean isOpponent = midPiece != null && !((String) midPiece.getTag(R.id.piece_color_tag)).equals(color);
+                boolean isOpponent = midPiece != null &&
+                        !((String) midPiece.getTag(R.id.piece_color_tag)).equals(color);
                 boolean jumpEmpty = jumpCell.getChildCount() <= 2;
 
                 if (isOpponent && jumpEmpty) {
@@ -653,7 +717,16 @@ public class MainActivity extends AppCompatActivity {
 
     private boolean hasMoreCaptures(ImageView piece, int row, int col) {
         String color = (String) piece.getTag(R.id.piece_color_tag);
-        int[][] directions = {{1,1},{1,-1},{-1,1},{-1,-1}};
+        boolean isPromoted = piece.getTag(R.id.promoted_tag) != null;
+
+        int[][] directions;
+        if (isPromoted) {
+            directions = new int[][]{{1, 1}, {1, -1}, {-1, 1}, {-1, -1}}; // all directions
+        } else if ("red".equals(color)) {
+            directions = new int[][]{{1, 1}, {1, -1}}; // forward only
+        } else {
+            directions = new int[][]{{-1, 1}, {-1, -1}}; // forward only
+        }
 
         for (int[] dir : directions) {
             int midRow = row + dir[0];
@@ -674,7 +747,8 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
 
-                boolean isOpponent = midPiece != null && !((String) midPiece.getTag(R.id.piece_color_tag)).equals(color);
+                boolean isOpponent = midPiece != null &&
+                        !((String) midPiece.getTag(R.id.piece_color_tag)).equals(color);
                 boolean jumpEmpty = jumpCell.getChildCount() <= 2;
 
                 if (isOpponent && jumpEmpty) {
@@ -682,6 +756,7 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         }
+
         return false;
     }
 
@@ -883,9 +958,9 @@ public class MainActivity extends AppCompatActivity {
             showWinDialog(player2Name);
         } else if (countPieces("blue") == 0) {
             showWinDialog(player1Name);
-        } else if (player1Score >= 100) {
+        } else if (player1Score >= 200) {
             showWinDialog(player1Name);
-        } else if (player2Score >= 100) {
+        } else if (player2Score >= 200) {
             showWinDialog(player2Name);
         }
     }

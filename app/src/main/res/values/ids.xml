@@ -5,5 +5,5 @@
     <item type="id" name="piece_color_tag" />
     <item type="id" name="tile_type_id" />
 
-    <item type="id" name="is_king_tag" />
+    <item type="id" name="promoted_tag" />
 </resources>
