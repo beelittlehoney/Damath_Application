@@ -2,7 +2,6 @@ package com.example.damathapplication;
 
 import android.app.AlertDialog;
 import android.content.Intent;
-import android.graphics.drawable.Drawable;
 import android.graphics.Color;
 import android.media.AudioAttributes;
 import android.media.MediaPlayer;
@@ -16,7 +15,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.*;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.content.ContextCompat;
 import java.util.*;
 
 public class MainActivity extends AppCompatActivity {
