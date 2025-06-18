@@ -2,6 +2,7 @@ package com.example.damathapplication;
 
 import android.app.AlertDialog;
 import android.content.Intent;
+import android.graphics.drawable.Drawable;
 import android.graphics.Color;
 import android.media.AudioAttributes;
 import android.media.MediaPlayer;
@@ -15,6 +16,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.*;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import java.util.*;
 
 public class MainActivity extends AppCompatActivity {
@@ -317,7 +319,6 @@ public class MainActivity extends AppCompatActivity {
                                     int opId = (Integer) tileImage.getTag(R.id.tile_type_id);
 
                                     String operatorSymbol = getOperatorSymbol(opId);
-
                                     scoreGained = evaluateOperation(a, b, opId);
                                     solutionText = a + " " + operatorSymbol + " " + b + " = " + scoreGained;
 
@@ -332,10 +333,8 @@ public class MainActivity extends AppCompatActivity {
                                     checkWinCondition();
 
                                     String opponentColor = currentColor.equals("red") ? "blue" : "red";
-                                    int opponentPieces = countPieces(opponentColor);
-                                    if (opponentPieces == 0) {
-                                        String winnerName = currentColor.equals("red") ? player1Name : player2Name;
-                                        showWinDialog(winnerName);
+                                    if (countPieces(opponentColor) == 0) {
+                                        showWinDialog(currentColor.equals("red") ? player1Name : player2Name);
                                         return;
                                     }
 
@@ -353,6 +352,15 @@ public class MainActivity extends AppCompatActivity {
                         boolean isRegularDiagonal = isValidDiagonalMove(selectedRow, selectedCol, toRow, toCol);
 
                         if ((isRegularDiagonal && (isPromoted || isForward)) || isCapture) {
+                            // 🧹 Remove crown before moving
+                            for (int i = 0; i < selectedPieceParent.getChildCount(); i++) {
+                                View child = selectedPieceParent.getChildAt(i);
+                                if ("crown".equals(child.getTag())) {
+                                    selectedPieceParent.removeView(child);
+                                    break;
+                                }
+                            }
+
                             selectedPieceParent.removeView(selectedPiece);
                             targetCell.addView(selectedPiece);
 
@@ -366,35 +374,36 @@ public class MainActivity extends AppCompatActivity {
                             selectedCol = toCol;
                             selectedPieceParent = targetCell;
 
-                            // Promote if reaches end
+                            // 👑 Promote if reaching last row
                             if (("red".equals(currentTurn) && toRow == 7) ||
                                     ("blue".equals(currentTurn) && toRow == 0)) {
+                                selectedPiece.setTag(R.id.promoted_tag, true);
+                            }
 
-                                if (selectedPiece.getTag(R.id.promoted_tag) == null) {
-                                    selectedPiece.setTag(R.id.promoted_tag, true);
-
-                                    ImageView crown = new ImageView(this);
-                                    crown.setImageResource(R.drawable.icon_crown);
-                                    FrameLayout.LayoutParams paramsCrown = new FrameLayout.LayoutParams(
-                                            FrameLayout.LayoutParams.WRAP_CONTENT,
-                                            FrameLayout.LayoutParams.WRAP_CONTENT);
-                                    paramsCrown.gravity = Gravity.TOP | Gravity.END;
-                                    paramsCrown.setMargins(0, 4, 4, 0);
-                                    crown.setLayoutParams(paramsCrown);
-                                    crown.setTag("crown");
-
-                                    boolean hasCrown = false;
-                                    for (int i = 0; i < selectedPieceParent.getChildCount(); i++) {
-                                        View child = selectedPieceParent.getChildAt(i);
-                                        if ("crown".equals(child.getTag())) {
-                                            hasCrown = true;
-                                            break;
-                                        }
-                                    }
-                                    if (!hasCrown) {
-                                        selectedPieceParent.addView(crown);
+                            // ✅ Always re-add crown if promoted
+                            if (selectedPiece.getTag(R.id.promoted_tag) != null) {
+                                // Remove existing crown (defensive)
+                                for (int i = 0; i < targetCell.getChildCount(); i++) {
+                                    View child = targetCell.getChildAt(i);
+                                    if ("crown".equals(child.getTag())) {
+                                        targetCell.removeView(child);
+                                        break;
                                     }
                                 }
+
+                                ImageView crown = new ImageView(this);
+                                crown.setImageResource(R.drawable.crown);
+
+                                FrameLayout.LayoutParams paramsCrown = new FrameLayout.LayoutParams(
+                                        FrameLayout.LayoutParams.WRAP_CONTENT,
+                                        FrameLayout.LayoutParams.WRAP_CONTENT
+                                );
+                                paramsCrown.gravity = Gravity.TOP | Gravity.END;
+                                paramsCrown.setMargins(0, 4, 4, 0);
+                                crown.setLayoutParams(paramsCrown);
+                                crown.setTag("crown");
+
+                                targetCell.addView(crown);
                             }
 
                             clearHighlights();
@@ -403,13 +412,11 @@ public class MainActivity extends AppCompatActivity {
                                 soundPool.play(moveSoundId, 1f, 1f, 0, 0, 1f);
                             }
 
-                            if (isCapture && !solutionText.isEmpty()) {
-                                solutionTextView.setText("Last Score: " + solutionText);
-                            } else {
-                                solutionTextView.setText("");
-                            }
+                            solutionTextView.setText(isCapture && !solutionText.isEmpty() ?
+                                    "Last Score: " + solutionText : "");
 
-                            StrategyType strategy = analyzeMoveStrategy(selectedPiece, toRow, toCol,
+                            StrategyType strategy = analyzeMoveStrategy(
+                                    selectedPiece, toRow, toCol,
                                     oldSelectedRow, oldSelectedCol,
                                     isCapture, capturedPiece, scoreGained);
 
