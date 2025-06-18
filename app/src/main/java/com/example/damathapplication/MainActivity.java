@@ -1,13 +1,18 @@
 package com.example.damathapplication;
 
+import android.app.AlertDialog;
 import android.content.Intent;
+import android.graphics.Color;
 import android.media.AudioAttributes;
+import android.media.MediaPlayer;
 import android.media.SoundPool;
 import android.os.Bundle;
+import android.os.Handler;
 import android.util.DisplayMetrics;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.*;
 import androidx.appcompat.app.AppCompatActivity;
 import java.util.*;
@@ -15,6 +20,7 @@ import java.util.*;
 public class MainActivity extends AppCompatActivity {
     private TextView player1ScoreTextView, player2ScoreTextView, turnIndicatorTextView, solutionTextView;
     private FrameLayout[][] tileContainers = new FrameLayout[8][8];
+    private MediaPlayer winMusicPlayer;
     private String currentTurn;
     private String player1Name = "Player 1";
     private String player2Name = "Player 2";
@@ -28,19 +34,26 @@ public class MainActivity extends AppCompatActivity {
     private LinearLayout moveHistoryTable;
     private ScrollView moveHistoryScroll1, moveHistoryScroll2;
     private LinearLayout moveHistoryContent1, moveHistoryContent2;
-
     private final int[] numberTiles = {
             R.drawable.tile_number_1, R.drawable.tile_number_2, R.drawable.tile_number_3, R.drawable.tile_number_4,
             R.drawable.tile_number_5, R.drawable.tile_number_6, R.drawable.tile_number_7, R.drawable.tile_number_8
     };
-
     private final int[] operatorTiles = {
             R.drawable.tile_add, R.drawable.tile_minus, R.drawable.tile_multiply, R.drawable.tile_divide
     };
-
     private enum StrategyType {
         NONE, KING_BOUND, CENTER_CONTROL, HIGH_VALUE_CAPTURE, ADVANTAGEOUS_TRADE
     }
+    private Handler handler = new Handler();
+    private final Random random = new Random();
+    private final String[] operators = {"+", "-", "×", "÷"};
+    private final int[][] colorSets = {
+            {Color.argb(80, 255, 82, 82), Color.argb(80, 255, 215, 64)},
+            {Color.argb(80, 100, 255, 218), Color.argb(80, 68, 138, 255)},
+            {Color.argb(80, 179, 136, 255), Color.argb(80, 255, 128, 171)},
+            {Color.argb(80, 105, 240, 174), Color.argb(80, 255, 255, 141)}
+    };
+    private final int[] textSizes = {36, 42, 48, 54};
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -247,6 +260,17 @@ public class MainActivity extends AppCompatActivity {
                                         player2ScoreTextView.setText(player2Name + ": " + player2Score);
                                     }
 
+                                    checkWinCondition();
+
+                                    // Check for win
+                                    String opponentColor = currentColor.equals("red") ? "blue" : "red";
+                                    int opponentPieces = countPieces(opponentColor);
+                                    if (opponentPieces == 0) {
+                                        String winnerName = currentColor.equals("red") ? player1Name : player2Name;
+                                        showWinDialog(winnerName);
+                                        return;
+                                    }
+
                                     addMoveToHistory(currentColor,
                                             (Integer) selectedPiece.getTag(R.id.tile_type_id),
                                             (Integer) midPiece.getTag(R.id.tile_type_id),
@@ -300,6 +324,8 @@ public class MainActivity extends AppCompatActivity {
                                     isCapture, capturedPiece, scoreGained);
 
                             showStrategyPopup(strategy);
+
+                            checkWinCondition();
 
                             if (isCapture && hasMoreCaptures(selectedPiece, toRow, toCol)) {
                                 selectedPiece.setAlpha(0.5f);
@@ -358,17 +384,6 @@ public class MainActivity extends AppCompatActivity {
             int[] pos = bluePositions[i];
             addPieceToTile(pos[0], pos[1], "blue_piece_" + bluePieces.get(i), tileSizePx);
         }
-    }
-
-    private boolean isWhiteTile(ImageView tile) {
-        int id = (Integer) tile.getTag(R.id.tile_type_id);
-        for (int op : operatorTiles) {
-            if (tile.getDrawable() != null && tile.getDrawable().getConstantState() != null &&
-                    getResources().getDrawable(op).getConstantState().equals(tile.getDrawable().getConstantState())) {
-                return true;
-            }
-        }
-        return false;
     }
 
     private void addPieceToTile(int row, int col, String pieceName, int tileSizePx) {
@@ -614,13 +629,6 @@ public class MainActivity extends AppCompatActivity {
         return false;
     }
 
-    private boolean hasAdjacentSameOperator(int[][] operatorIndices, int row, int col, int operatorIndex) {
-        if (col > 0 && operatorIndices[row][col - 1] == operatorIndex) {
-            return true;
-        }
-        return row > 0 && operatorIndices[row - 1][col] == operatorIndex;
-    }
-
     private StrategyType analyzeMoveStrategy(ImageView movedPiece, int newRow, int newCol,
                                              int oldRow, int oldCol,
                                              boolean isCapture, ImageView capturedPiece, int scoreGained) {
@@ -679,9 +687,149 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+
         if (soundPool != null) {
             soundPool.release();
             soundPool = null;
+        }
+
+        if (winMusicPlayer != null) {
+            winMusicPlayer.release();
+            winMusicPlayer = null;
+        }
+    }
+
+    private int countPieces(String color) {
+        int count = 0;
+        for (int r = 0; r < 8; r++) {
+            for (int c = 0; c < 8; c++) {
+                FrameLayout cell = tileContainers[r][c];
+                if (cell != null) {
+                    for (int i = 0; i < cell.getChildCount(); i++) {
+                        View child = cell.getChildAt(i);
+                        if (child instanceof ImageView && color.equals(child.getTag(R.id.piece_color_tag))) {
+                            count++;
+                        }
+                    }
+                }
+            }
+        }
+        return count;
+    }
+
+    private void startOperatorRain() {
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                createFallingOperator();
+                handler.postDelayed(this, 800);
+            }
+        }, 500);
+    }
+
+    private void stopOperatorRain() {
+        handler.removeCallbacksAndMessages(null);
+    }
+
+    private void createFallingOperator() {
+        final TextView operator = new TextView(this);
+        operator.setText(operators[random.nextInt(operators.length)]);
+        operator.setTextSize(textSizes[random.nextInt(textSizes.length)]);
+
+        int[] colorSet = colorSets[random.nextInt(colorSets.length)];
+        operator.setTextColor(colorSet[random.nextInt(colorSet.length)]);
+        operator.setAlpha(0.7f);
+        operator.setElevation(1);
+
+        ViewGroup rootView = (ViewGroup) getWindow().getDecorView().getRootView();
+        ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        );
+        rootView.addView(operator, params);
+
+        int startX = random.nextInt(rootView.getWidth() - 300) + 150;
+        operator.setX(startX);
+        operator.setY(-100);
+
+        operator.animate()
+                .setDuration(1500)
+                .setUpdateListener(animation -> {
+                    float fraction = animation.getAnimatedFraction();
+                    int newColor = blendColors(
+                            colorSet[0],
+                            colorSet[1],
+                            (float) (0.5 + 0.5 * Math.sin(fraction * Math.PI))
+                    );
+                    operator.setTextColor(newColor);
+                })
+                .start();
+
+        operator.animate()
+                .y(rootView.getHeight())
+                .rotation(random.nextFloat() * 30 - 15)
+                .setDuration(5000 + random.nextInt(3000))
+                .withEndAction(() -> {
+                    if (operator.getParent() != null) {
+                        ((ViewGroup) operator.getParent()).removeView(operator);
+                    }
+                })
+                .start();
+    }
+
+    private int blendColors(int color1, int color2, float ratio) {
+        final float inverseRatio = 1f - ratio;
+        float a = (Color.alpha(color1) * inverseRatio) + (Color.alpha(color2) * ratio);
+        float r = (Color.red(color1) * inverseRatio) + (Color.red(color2) * ratio);
+        float g = (Color.green(color1) * inverseRatio) + (Color.green(color2) * ratio);
+        float b = (Color.blue(color1) * inverseRatio) + (Color.blue(color2) * ratio);
+        return Color.argb((int) a, (int) r, (int) g, (int) b);
+    }
+
+    private void showWinDialog(String winnerName) {
+        // Start the win animation
+        startOperatorRain();
+
+        // Play win music
+        winMusicPlayer = MediaPlayer.create(this, R.raw.backgroundmusic); // use your existing bg music file
+        winMusicPlayer.setLooping(true);
+        winMusicPlayer.start();
+
+        new AlertDialog.Builder(this)
+                .setTitle("🎉 Game Over!")
+                .setMessage(winnerName + " wins the game!")
+                .setCancelable(false)
+                .setPositiveButton("Restart", (dialog, which) -> {
+                    stopOperatorRain(); // stops the falling animation
+                    if (winMusicPlayer != null) {
+                        winMusicPlayer.stop();
+                        winMusicPlayer.release();
+                        winMusicPlayer = null;
+                    }
+
+                    new Handler().postDelayed(() -> recreate(), 200);
+                })
+                .setNegativeButton("Exit", (dialog, which) -> {
+                    stopOperatorRain(); // stops the falling animation
+                    if (winMusicPlayer != null) {
+                        winMusicPlayer.stop();
+                        winMusicPlayer.release();
+                        winMusicPlayer = null;
+                    }
+                    finishAffinity(); // exits the app completely
+                })
+                .show();
+    }
+
+    private void checkWinCondition() {
+        if (countPieces("red") == 0) {
+            showWinDialog(player2Name);
+        } else if (countPieces("blue") == 0) {
+            showWinDialog(player1Name);
+        } else if (player1Score >= 100) {
+            showWinDialog(player1Name);
+        } else if (player2Score >= 100) {
+            showWinDialog(player2Name);
         }
     }
 }
